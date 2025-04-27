@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/notification.dart';
 import 'package:flutter_application_1/pages/profile.dart';
 import 'package:flutter_application_1/pages/search.dart';
-import 'package:flutter_application_1/pages/user_list.dart'; // Импортируем новую страницу
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -16,7 +15,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Список экранов для отображения в зависимости от выбранной вкладки
   final List<Widget> _screens = [
     HomeContent(),
     SearchPage(),
@@ -44,25 +42,16 @@ class _HomeScreenState extends State<HomeScreen> {
             _selectedIndex = index;
           });
         },
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => UserListPage()),
-          );
-        },
-        backgroundColor: Colors.blue, // Цвет кнопки
-        foregroundColor: Colors.white, // Цвет иконки
-        child: Icon(Icons.people),
+        selectedItemColor: Theme.of(context).colorScheme.secondary,
+        unselectedItemColor: Theme.of(
+          context,
+        ).colorScheme.onSurface.withOpacity(0.6),
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
     );
   }
 }
 
-// Вынесем контент домашней страницы в отдельный виджет
 class HomeContent extends StatelessWidget {
   final List<String> jobs = [
     'Flutter Developer',
@@ -83,7 +72,6 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(title: Text('Job Seeker Dashboard'), centerTitle: true),
       body: SingleChildScrollView(
@@ -108,20 +96,38 @@ class HomeContent extends StatelessWidget {
                       elevation: 4,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
-                        side: BorderSide(color: Colors.blue, width: 2),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.3),
+                          width: 1,
+                        ),
                       ),
                       child: Container(
                         width: 150,
                         padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.work, size: 40, color: Colors.blue),
+                            Icon(
+                              Icons.work,
+                              size: 40,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                             SizedBox(height: 10),
                             Text(
                               jobs[index],
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.black87),
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
                         ),
@@ -147,11 +153,19 @@ class HomeContent extends StatelessWidget {
                 itemBuilder: (context, index) {
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.3),
+                        width: 1,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.2),
                           spreadRadius: 2,
                           blurRadius: 5,
                           offset: Offset(0, 3),
@@ -164,7 +178,7 @@ class HomeContent extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[900],
+                        color: Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                   );
