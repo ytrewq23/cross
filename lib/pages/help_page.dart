@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import '../localizations.dart';
 
 class HelpPage extends StatefulWidget {
   @override
@@ -33,13 +34,14 @@ class _HelpPageState extends State<HelpPage> {
   }
 
   Future<void> _sendEmail() async {
+    final localizations = AppLocalizations.of(context);
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-      final serviceId = 'service_5073rm2'; // твой service_id
-      final templateId = 'template_iggr0om'; // твой template_id
-      final userId = 'NoInnSdze2Ouzhru9'; // твой public key (user_id)
+      final serviceId = 'service_5073rm2'; // Ваш service_id
+      final templateId = 'template_iggr0om'; // Ваш template_id
+      final userId = 'NoInnSdze2Ouzhru9'; // Ваш public key (user_id)
 
       // Создаем сообщение вместе с email пользователя
       final fullMessage = '''
@@ -65,20 +67,26 @@ User Email: ${_userEmail ?? 'unknown'}
         );
 
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Message sent successfully!')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(localizations.translate('messageSent')),
+            ),
+          );
           _subjectController.clear();
           _messageController.clear();
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to send message.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(localizations.translate('messageFailed')),
+            ),
+          );
         }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${localizations.translate('error')}: $e'),
+          ),
+        );
       } finally {
         setState(() => _isLoading = false);
       }
@@ -94,9 +102,13 @@ User Email: ${_userEmail ?? 'unknown'}
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Help', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('help'),
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
         centerTitle: true,
       ),
@@ -108,7 +120,7 @@ User Email: ${_userEmail ?? 'unknown'}
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Contact Support',
+                localizations.translate('contactSupportTitle'),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -117,7 +129,7 @@ User Email: ${_userEmail ?? 'unknown'}
               ),
               SizedBox(height: 16),
               Text(
-                'If you need assistance, please fill out the form below, and our support team will get back to you.',
+                localizations.translate('supportDescription'),
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -127,29 +139,29 @@ User Email: ${_userEmail ?? 'unknown'}
               TextFormField(
                 controller: _subjectController,
                 decoration: InputDecoration(
-                  labelText: 'Subject',
+                  labelText: localizations.translate('subject'),
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.subject),
                 ),
-                validator:
-                    (value) => value!.isEmpty ? 'Please enter a subject' : null,
+                validator: (value) =>
+                    value!.isEmpty ? localizations.translate('enterSubject') : null,
               ),
               SizedBox(height: 16),
               TextFormField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  labelText: 'Message',
+                  labelText: localizations.translate('message'),
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.message),
                 ),
                 maxLines: 5,
-                validator:
-                    (value) => value!.isEmpty ? 'Please enter a message' : null,
+                validator: (value) =>
+                    value!.isEmpty ? localizations.translate('enterMessage') : null,
               ),
               SizedBox(height: 16),
               if (_userEmail != null)
                 Text(
-                  'Your email: $_userEmail',
+                  '${localizations.translate('yourEmail')}: $_userEmail',
                   style: TextStyle(
                     fontSize: 16,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -159,17 +171,17 @@ User Email: ${_userEmail ?? 'unknown'}
               _isLoading
                   ? Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                    onPressed: _sendEmail,
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.blue,
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      onPressed: _sendEmail,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.blue,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
+                      child: Text(localizations.translate('sendMessage')),
                     ),
-                    child: Text('Send Message'),
-                  ),
             ],
           ),
         ),

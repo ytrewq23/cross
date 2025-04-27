@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import '../localizations.dart';
 
 class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('About the App', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('aboutTheApp'),
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
         centerTitle: true,
       ),
@@ -15,7 +20,7 @@ class AboutPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Job Recruitment Platform',
+              localizations.translate('appTitle'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -25,7 +30,7 @@ class AboutPage extends StatelessWidget {
             ),
             SizedBox(height: 16),
             Text(
-              'Version 1.0.0',
+              localizations.translate('version'),
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -34,7 +39,7 @@ class AboutPage extends StatelessWidget {
             ),
             SizedBox(height: 24),
             Text(
-              'About Us',
+              localizations.translate('aboutUs'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -43,7 +48,7 @@ class AboutPage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'The Job Recruitment Platform is designed to connect job seekers with employers seamlessly. Our mission is to simplify the job search process by providing a user-friendly interface, personalized job recommendations, and secure user management. Whether you\'re looking for your dream job or seeking top talent, our platform is here to help.',
+              localizations.translate('aboutDescription'),
               style: TextStyle(
                 fontSize: 16,
                 height: 1.5,
@@ -52,7 +57,7 @@ class AboutPage extends StatelessWidget {
             ),
             SizedBox(height: 24),
             Text(
-              'Features',
+              localizations.translate('features'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -63,25 +68,25 @@ class AboutPage extends StatelessWidget {
             _buildFeatureItem(
               context,
               icon: Icons.search,
-              title: 'Job Search',
-              description: 'Find jobs tailored to your skills and preferences.',
+              title: localizations.translate('jobSearch'),
+              description: localizations.translate('jobSearchDescription'),
             ),
             _buildFeatureItem(
               context,
               icon: Icons.person,
-              title: 'Profile Management',
-              description: 'Easily update your personal information and preferences.',
+              title: localizations.translate('profileManagement'),
+              description: localizations.translate('profileManagementDescription'),
             ),
             _buildFeatureItem(
               context,
               icon: Icons.notifications,
-              title: 'Notifications',
-              description: 'Stay updated with job alerts and application statuses.',
+              title: localizations.translate('notificationsFeature'),
+              description: localizations.translate('notificationsDescription'),
             ),
             SizedBox(height: 24),
             Center(
               child: Text(
-                '© 2025 Job Recruitment Platform. All rights reserved.',
+                localizations.translate('copyright'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -95,11 +100,11 @@ class AboutPage extends StatelessWidget {
   }
 
   Widget _buildFeatureItem(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String description,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(

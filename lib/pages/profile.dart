@@ -1,11 +1,12 @@
 import 'dart:html' as html;
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
+import '../models/user.dart';
+import '../localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -16,12 +17,12 @@ class _ProfilePageState extends State<ProfilePage> {
   String _name = '';
   String _email = '';
   List<Map<String, String>> _resumes = [];
-  String _status = 'Активно ищу работу';
+  String _status = 'statusActive'; // Храним ключ перевода
   final List<String> _statuses = [
-    'Активно ищу работу',
-    'Нашел работу',
-    'Не ищу работу',
-  ];
+    'statusActive',
+    'statusFound',
+    'statusNotLooking',
+  ]; // Ключи переводов для статусов
   String? _avatarBase64;
   bool _isVerified = false;
 
@@ -38,6 +39,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final userJson = prefs.getString('user');
     final resumesJson = prefs.getString('resumes');
     final avatar = prefs.getString('avatar');
+    final savedStatus = prefs.getString('status');
 
     if (userJson != null) {
       final user = User.fromJson(jsonDecode(userJson));
@@ -46,6 +48,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     if (resumesJson != null) {
       _resumes = List<Map<String, String>>.from(jsonDecode(resumesJson));
+    }
+    if (savedStatus != null && _statuses.contains(savedStatus)) {
+      _status = savedStatus;
     }
     _avatarBase64 = avatar;
     setState(() {
@@ -60,36 +65,85 @@ class _ProfilePageState extends State<ProfilePage> {
     await prefs.setString('avatar', base64Image);
   }
 
-  void _pickImage() {
-    html.window.navigator.mediaDevices
-        ?.getUserMedia({'video': true})
-        .then((stream) {
-          final videoTrack = stream.getVideoTracks().first;
-          final videoElement =
-              html.VideoElement()
-                ..autoplay = true
-                ..srcObject = stream;
+  Future<void> _saveStatus(String status) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('status', status);
+  }
 
-          videoElement.play();
+  Future<void> _pickImage() async {
+    try {
+      final stream = await html.window.navigator.mediaDevices?.getUserMedia({
+        'video': true,
+      });
+      if (stream == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось получить доступ к камере')),
+        );
+        return;
+      }
 
-          videoElement.onLoadedData.listen((event) {
-            final canvas = html.CanvasElement(width: 640, height: 480);
-            final context = canvas.context2D;
-            context.drawImage(videoElement, 0, 0);
+      final videoElement =
+          html.VideoElement()
+            ..autoplay = true
+            ..srcObject = stream;
 
-            final base64Image = canvas.toDataUrl('image/png');
-            _saveAvatar(base64Image);
-            setState(() {
-              _avatarBase64 = base64Image;
-              _isVerified = true;
-            });
+      await videoElement.play();
 
-            videoTrack.stop();
-          });
-        })
-        .catchError((e) {
-          print("Ошибка доступа к камере: $e");
-        });
+      await showDialog(
+        context: context,
+        builder:
+            (dialogCtx) => AlertDialog(
+              title: Text('Сделать фото'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Камера активна. Нажмите, чтобы сделать снимок.'),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final canvas = html.CanvasElement(
+                        width: videoElement.videoWidth,
+                        height: videoElement.videoHeight,
+                      );
+                      final ctx = canvas.context2D;
+                      ctx.drawImage(videoElement, 0, 0);
+
+                      final base64Image = canvas.toDataUrl('image/png');
+                      await _saveAvatar(base64Image);
+
+                      setState(() {
+                        _avatarBase64 = base64Image;
+                        _isVerified = true;
+                      });
+
+                      stream.getTracks().forEach((track) => track.stop());
+                      Navigator.of(
+                        dialogCtx,
+                        rootNavigator: true,
+                      ).pop(); // Закрываем правильно
+                    },
+                    child: Text('Снять'),
+                    style: _buttonStyle(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    stream.getTracks().forEach((track) => track.stop());
+                    Navigator.of(dialogCtx, rootNavigator: true).pop();
+                  },
+                  child: Text('Отмена'),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      print("Ошибка доступа к камере: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка доступа к камере: $e')));
+    }
   }
 
   void _deleteAvatar() async {
@@ -111,38 +165,42 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Профиль'), centerTitle: true),
+      appBar: AppBar(
+        title: Text(localizations.translate('profile')),
+        centerTitle: true,
+      ),
       endDrawer: Drawer(
         child: ListView(
           children: [
             ListTile(
-              title: Text('About the App'),
+              title: Text(localizations.translate('aboutTheApp')),
               onTap: () {
-                Navigator.pop(context); // Close drawer
+                Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AboutPage()),
+                  MaterialPageRoute(builder: (_) => AboutPage()),
                 );
               },
             ),
             ListTile(
-              title: Text('Settings'),
+              title: Text(localizations.translate('settings')),
               onTap: () {
-                Navigator.pop(context); // Close drawer
+                Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
+                  MaterialPageRoute(builder: (_) => SettingsPage()),
                 );
               },
             ),
             ListTile(
-              title: Text('Help'),
+              title: Text(localizations.translate('help')),
               onTap: () {
-                Navigator.pop(context); // Close drawer
+                Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => HelpPage()),
+                  MaterialPageRoute(builder: (_) => HelpPage()),
                 );
               },
             ),
@@ -156,18 +214,29 @@ class _ProfilePageState extends State<ProfilePage> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage:
+                  ClipOval(
+                    child:
                         _avatarBase64 != null
-                            ? NetworkImage(_avatarBase64!)
-                            : AssetImage(_placeholderAvatar) as ImageProvider,
+                            ? Image.memory(
+                              base64Decode(_avatarBase64!.split(',').last),
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            )
+                            : Image.asset(
+                              _placeholderAvatar,
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
                   ),
                   SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: _isVerified ? null : _pickImage,
                     child: Text(
-                      _isVerified ? 'Верифицировано' : 'Верифицировать себя',
+                      _isVerified
+                          ? localizations.translate('verified')
+                          : localizations.translate('verifyYourself'),
                     ),
                     style: _buttonStyle(),
                   ),
@@ -176,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                         onPressed: _deleteAvatar,
-                        child: Text('Удалить фото'),
+                        child: Text(localizations.translate('deletePhoto')),
                         style: ElevatedButton.styleFrom(
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
@@ -207,17 +276,21 @@ class _ProfilePageState extends State<ProfilePage> {
                   DropdownButton<String>(
                     value: _status,
                     icon: Icon(Icons.arrow_drop_down),
+                    isExpanded: true,
                     items:
-                        _statuses.map((String status) {
+                        _statuses.map((String statusKey) {
                           return DropdownMenuItem<String>(
-                            value: status,
-                            child: Text(status),
+                            value: statusKey,
+                            child: Text(localizations.translate(statusKey)),
                           );
                         }).toList(),
                     onChanged: (String? newValue) {
-                      setState(() {
-                        _status = newValue!;
-                      });
+                      if (newValue != null) {
+                        setState(() {
+                          _status = newValue;
+                        });
+                        _saveStatus(newValue);
+                      }
                     },
                   ),
                 ],
@@ -229,12 +302,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Мое резюме:',
+                    localizations.translate('myResume'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   SizedBox(height: 10),
                   if (_resumes.isEmpty)
-                    Text('Нет добавленных резюме.')
+                    Text(localizations.translate('noResumes'))
                   else
                     ListView.builder(
                       shrinkWrap: true,
@@ -244,7 +317,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         final resume = _resumes[index];
                         return ListTile(
                           title: Text(resume['profession']!),
-                          subtitle: Text('Создано: ${resume['date']}'),
+                          subtitle: Text(
+                            '${localizations.translate('created')}: ${resume['date']}',
+                          ),
                           trailing: IconButton(
                             icon: Icon(
                               Icons.delete,
@@ -257,8 +332,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {},
-                    child: Text('Создать новое резюме'),
+                    onPressed: () {
+                      // Логика для создания резюме
+                    },
+                    child: Text(localizations.translate('createResume')),
                     style: _buttonStyle(),
                   ),
                 ],

@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/user.dart';
-import 'package:flutter_application_1/pages/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'home.dart';
+import 'register_page.dart';
+import '../models/user.dart';
+import '../localizations.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -21,7 +22,6 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Проверка данных
       final prefs = await SharedPreferences.getInstance();
       String? userJson = prefs.getString('user');
       String? savedPassword = prefs.getString('password');
@@ -30,22 +30,27 @@ class _LoginPageState extends State<LoginPage> {
         Map<String, dynamic> userMap = jsonDecode(userJson);
         User user = User.fromJson(userMap);
 
-        if (_emailController.text == user.email && _passwordController.text == savedPassword) {
-          // Логин успешен
+        if (_emailController.text == user.email &&
+            _passwordController.text == savedPassword) {
           Future.delayed(Duration(seconds: 1), () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => HomeScreen(userName: user.name)),
+              MaterialPageRoute(
+                  builder: (context) => HomeScreen(userName: user.name)),
             );
           });
         } else {
-          // Ошибка логина
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid credentials')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content:
+                      Text(AppLocalizations.of(context).translate('invalidCredentials'))));
           setState(() => _isLoading = false);
         }
       } else {
-        // Ошибка логина
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid credentials')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text(AppLocalizations.of(context).translate('invalidCredentials'))));
         setState(() => _isLoading = false);
       }
     }
@@ -60,8 +65,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      appBar: AppBar(title: Text(localizations.translate('login'))),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -71,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
               shrinkWrap: true,
               children: [
                 Text(
-                  'Welcome Back!',
+                  localizations.translate('welcomeBack'),
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
@@ -79,33 +85,38 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Email',
+                    labelText: localizations.translate('email'),
                     prefixIcon: Icon(Icons.email),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter your email' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterEmail') : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: localizations.translate('password'),
                     prefixIcon: Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      icon: Icon(_isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => _isPasswordVisible = !_isPasswordVisible),
                     ),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter your password' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterPassword') : null,
                 ),
                 SizedBox(height: 24),
                 _isLoading
                     ? Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         onPressed: _login,
-                        child: Text('Login'),
+                        child: Text(localizations.translate('login')),
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -115,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                 TextButton(
                   onPressed: _navigateToRegister,
-                  child: Text('Don\'t have an account? Sign Up'),
+                  child: Text(localizations.translate('dontHaveAccount')),
                 ),
               ],
             ),

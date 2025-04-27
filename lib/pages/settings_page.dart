@@ -6,6 +6,7 @@ import 'package:flutter_application_1/theme_language_provider.dart';
 import 'login_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
+import '../localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
@@ -16,10 +17,14 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeLanguageProvider>(context);
+    final localizations = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('settings'),
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
@@ -27,7 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           SwitchListTile(
             title: Text(
-              'Dark Theme',
+              localizations.translate('darkTheme'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             value: themeProvider.isDarkMode,
@@ -38,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'User Settings',
+              localizations.translate('userSettings'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -53,7 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'Notification Settings',
+              localizations.translate('notificationSettings'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -70,7 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'Language',
+              localizations.translate('language'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -85,7 +90,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'Favourites',
+              localizations.translate('favourites'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -100,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'About the App',
+              localizations.translate('aboutTheApp'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -112,7 +117,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ).catchError((e) {
                 print('Error navigating to AboutPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to open About page')),
+                  SnackBar(
+                    content: Text(localizations.translate('failedToOpenAbout')),
+                  ),
                 );
               });
             },
@@ -120,7 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'Help',
+              localizations.translate('help'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             trailing: Icon(Icons.arrow_forward_ios),
@@ -132,7 +139,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ).catchError((e) {
                 print('Error navigating to HelpPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to open Help page')),
+                  SnackBar(
+                    content: Text(localizations.translate('failedToOpenHelp')),
+                  ),
                 );
               });
             },
@@ -140,7 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
           ListTile(
             title: Text(
-              'Logout',
+              localizations.translate('logout'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -176,24 +185,38 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   final _passwordController = TextEditingController();
 
   void _updateName() async {
+    final localizations = AppLocalizations.of(context);
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizations.translate('enterName'))),
+      );
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     String? userJson = prefs.getString('user');
     if (userJson != null) {
       Map<String, dynamic> userMap = jsonDecode(userJson);
       userMap['name'] = _nameController.text;
       await prefs.setString('user', jsonEncode(userMap));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Name updated successfully')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizations.translate('nameUpdated'))),
+      );
     }
   }
 
   void _updatePassword() async {
+    final localizations = AppLocalizations.of(context);
+    if (_passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizations.translate('enterPassword'))),
+      );
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('password', _passwordController.text);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Password updated successfully')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(localizations.translate('passwordUpdated'))),
+    );
   }
 
   @override
@@ -205,9 +228,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('User Settings', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('userSettings'),
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
@@ -218,7 +245,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'New Name',
+                labelText: localizations.translate('newName'),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -228,14 +255,17 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Text('Update Name'),
+              child: Text(localizations.translate('updateName')),
             ),
             SizedBox(height: 20),
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
-                labelText: 'New Password',
+                labelText: localizations.translate('newPassword'),
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
@@ -246,8 +276,11 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Text('Update Password'),
+              child: Text(localizations.translate('updatePassword')),
             ),
           ],
         ),
@@ -268,10 +301,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Notification Settings',
+          localizations.translate('notificationSettings'),
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.blue,
@@ -279,7 +313,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SwitchListTile(
-          title: Text('Enable Sound'),
+          title: Text(localizations.translate('enableSound')),
           value: _soundEnabled,
           onChanged: (value) {
             setState(() {
@@ -299,40 +333,17 @@ class LanguageSettingsPage extends StatefulWidget {
 }
 
 class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
-  String _selectedLanguage = 'Русский';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLanguage();
-  }
-
-  Future<void> _loadLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _selectedLanguage = prefs.getString('language') ?? 'Русский';
-    });
-  }
-
-  Future<void> _saveLanguage(String language) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language', language);
-  }
-
-  void _onLanguageChanged(String? language) {
-    if (language != null) {
-      setState(() {
-        _selectedLanguage = language;
-      });
-      _saveLanguage(language);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeLanguageProvider>(context);
+    final localizations = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Language Settings', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('language'),
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
@@ -340,22 +351,34 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
         child: Column(
           children: [
             RadioListTile<String>(
-              title: Text('Қазақша'),
-              value: 'Қазақша',
-              groupValue: _selectedLanguage,
-              onChanged: _onLanguageChanged,
+              title: Text(localizations.translate('languageKazakh')),
+              value: localizations.translate('languageKazakh'),
+              groupValue: themeProvider.language,
+              onChanged: (value) {
+                if (value != null) {
+                  themeProvider.setLanguage(value);
+                }
+              },
             ),
             RadioListTile<String>(
-              title: Text('Русский'),
-              value: 'Русский',
-              groupValue: _selectedLanguage,
-              onChanged: _onLanguageChanged,
+              title: Text(localizations.translate('languageRussian')),
+              value: localizations.translate('languageRussian'),
+              groupValue: themeProvider.language,
+              onChanged: (value) {
+                if (value != null) {
+                  themeProvider.setLanguage(value);
+                }
+              },
             ),
             RadioListTile<String>(
-              title: Text('English'),
-              value: 'English',
-              groupValue: _selectedLanguage,
-              onChanged: _onLanguageChanged,
+              title: Text(localizations.translate('languageEnglish')),
+              value: localizations.translate('languageEnglish'),
+              groupValue: themeProvider.language,
+              onChanged: (value) {
+                if (value != null) {
+                  themeProvider.setLanguage(value);
+                }
+              },
             ),
           ],
         ),
@@ -368,15 +391,19 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
 class FavouritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Favourites', style: TextStyle(color: Colors.white)),
+        title: Text(
+          localizations.translate('favourites'),
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Favourites settings will be implemented here.',
+          localizations.translate('favouritesPlaceholder'),
           style: TextStyle(fontSize: 16),
         ),
       ),

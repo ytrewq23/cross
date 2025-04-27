@@ -1,8 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/user.dart';
-import 'package:flutter_application_1/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'login_page.dart';
+import '../models/user.dart';
+import '../localizations.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -42,8 +43,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Sign Up')),
+      appBar: AppBar(title: Text(localizations.translate('register'))),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -53,7 +55,7 @@ class _RegisterPageState extends State<RegisterPage> {
               shrinkWrap: true,
               children: [
                 Text(
-                  'Create an Account',
+                  localizations.translate('signUp'),
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
@@ -61,45 +63,49 @@ class _RegisterPageState extends State<RegisterPage> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Name',
+                    labelText: localizations.translate('name'),
                     prefixIcon: Icon(Icons.person),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter your name' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterName') : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Email',
+                    labelText: localizations.translate('email'),
                     prefixIcon: Icon(Icons.email),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter your email' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterEmail') : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: localizations.translate('password'),
                     prefixIcon: Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      icon: Icon(_isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => _isPasswordVisible = !_isPasswordVisible),
                     ),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter your password' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterPassword') : null,
                 ),
                 SizedBox(height: 24),
                 _isLoading
                     ? Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         onPressed: _register,
-                        child: Text('Sign Up'),
+                        child: Text(localizations.translate('register')),
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -107,6 +113,15 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                       ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                  child: Text(localizations.translate('login')),
+                ),
               ],
             ),
           ),
