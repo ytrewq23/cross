@@ -5,6 +5,7 @@ import 'search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../localizations.dart';
+import '../orientation_support.dart';
 
 class RecentJobsManager {
   static Future<void> saveJob(Map<String, String> job) async {
@@ -92,6 +93,16 @@ class HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final categories = getCategories(context);
+
+    return withOrientationSupport(
+      context: context,
+      portrait: _buildPortraitLayout(context, localizations, categories),
+      landscape: _buildLandscapeLayout(context, localizations, categories),
+    );
+  }
+
+  Widget _buildPortraitLayout(
+      BuildContext context, AppLocalizations localizations, List<String> categories) {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.translate('jobSeekerDashboard')),
@@ -110,156 +121,196 @@ class HomeContent extends StatelessWidget {
               ),
               SizedBox(
                 height: 200,
-                child: FutureBuilder<List<Map<String, String>>>(
-                  future: RecentJobsManager.getRecentJobs(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final jobs = snapshot.data ?? [];
-                    if (jobs.isEmpty) {
-                      return Center(
-                        child: Text(
-                          localizations.translate('noRecentJobs'),
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      );
-                    }
-                    return ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: jobs.length,
-                      itemBuilder: (context, index) {
-                        final job = jobs[index];
-                        return GestureDetector(
-                          onTap: () {
-                            RecentJobsManager.saveJob(job);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => JobDetailsScreen(job: job),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            margin: const EdgeInsets.all(8),
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              side: BorderSide(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Container(
-                              width: 150,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.work,
-                                    size: 40,
-                                    color: Theme.of(context).colorScheme.secondary,
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    job['title']!,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context).textTheme.bodyMedium,
-                                  ),
-                                  Text(
-                                    job['company']!,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                child: _buildRecentJobs(context, localizations),
               ),
               const SizedBox(height: 20),
               Text(
                 localizations.translate('jobCategories'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: categories.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              CategoryJobsScreen(category: categories[index]),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.3),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.2),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        categories[index],
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
+              _buildCategoryGrid(context, categories, crossAxisCount: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+      BuildContext context, AppLocalizations localizations, List<String> categories) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(localizations.translate('jobSeekerDashboard')),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.translate('recentJobs'),
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  );
-                },
+                    SizedBox(
+                      height: 200,
+                      child: _buildRecentJobs(context, localizations),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.translate('jobCategories'),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    _buildCategoryGrid(context, categories, crossAxisCount: 3),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildRecentJobs(BuildContext context, AppLocalizations localizations) {
+    return FutureBuilder<List<Map<String, String>>>(
+      future: RecentJobsManager.getRecentJobs(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final jobs = snapshot.data ?? [];
+        if (jobs.isEmpty) {
+          return Center(
+            child: Text(
+              localizations.translate('noRecentJobs'),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+        return ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: jobs.length,
+          itemBuilder: (context, index) {
+            final job = jobs[index];
+            return GestureDetector(
+              onTap: () {
+                RecentJobsManager.saveJob(job);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => JobDetailsScreen(job: job),
+                  ),
+                );
+              },
+              child: Card(
+                margin: const EdgeInsets.all(8),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Container(
+                  width: 150,
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.work,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        job['title']!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      Text(
+                        job['company']!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryGrid(
+      BuildContext context, List<String> categories, {required int crossAxisCount}) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CategoryJobsScreen(category: categories[index]),
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              categories[index],
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -269,56 +320,24 @@ class CategoryJobsScreen extends StatelessWidget {
 
   static const Map<String, List<Map<String, String>>> categoryJobs = {
     'ИТ': [
-      {
-        'title': 'Flutter Developer',
-        'company': 'Tech Corp',
-        'location': 'Remote'
-      },
-      {
-        'title': 'Backend Engineer',
-        'company': 'Data Inc',
-        'location': 'San Francisco'
-      },
+      {'title': 'Flutter Developer', 'company': 'Tech Corp', 'location': 'Remote'},
+      {'title': 'Backend Engineer', 'company': 'Data Inc', 'location': 'San Francisco'},
     ],
     'Маркетинг': [
-      {
-        'title': 'Digital Marketer',
-        'company': 'Grow Easy',
-        'location': 'New York'
-      },
-      {
-        'title': 'Content Strategist',
-        'company': 'Brand Boost',
-        'location': 'London'
-      },
+      {'title': 'Digital Marketer', 'company': 'Grow Easy', 'location': 'New York'},
+      {'title': 'Content Strategist', 'company': 'Brand Boost', 'location': 'London'},
     ],
     'Продажи': [
-      {
-        'title': 'Sales Manager',
-        'company': 'Sell Well',
-        'location': 'Chicago'
-      },
+      {'title': 'Sales Manager', 'company': 'Sell Well', 'location': 'Chicago'},
     ],
     'Дизайн': [
-      {
-        'title': 'UI/UX Designer',
-        'company': 'Creative Studio',
-        'location': 'Berlin'
-      },
+      {'title': 'UI/UX Designer', 'company': 'Creative Studio', 'location': 'Berlin'},
     ],
     'HR': [
-      {
-        'title': 'HR Specialist',
-        'company': 'People First',
-        'location': 'Toronto'
-      },
+      {'title': 'HR Specialist', 'company': 'People First', 'location': 'Toronto'},
     ],
     'Финансы': [
-      {
-        'title': 'Financial Analyst',
-        'company': 'Money Wise',
-        'location': 'Singapore'
-      },
+      {'title': 'Financial Analyst', 'company': 'Money Wise', 'location': 'Singapore'},
     ],
   };
 
@@ -341,52 +360,85 @@ class CategoryJobsScreen extends StatelessWidget {
     final categoryKey = _getCategoryKey(context);
     final jobs = categoryJobs[categoryKey] ?? [];
 
+    return withOrientationSupport(
+      context: context,
+      portrait: _buildPortraitLayout(context, localizations, jobs),
+      landscape: _buildLandscapeLayout(context, localizations, jobs),
+    );
+  }
+
+  Widget _buildPortraitLayout(
+      BuildContext context, AppLocalizations localizations, List<Map<String, String>> jobs) {
     return Scaffold(
       appBar: AppBar(
-          title: Text('${localizations.translate('jobCategories')}: $category'),
-          centerTitle: true),
+        title: Text('${localizations.translate('jobCategories')}: $category'),
+        centerTitle: true,
+      ),
       body: jobs.isEmpty
           ? Center(child: Text(localizations.translate('noJobsAvailable')))
           : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: jobs.length,
-              itemBuilder: (context, index) {
-                final job = jobs[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(
-                      job['title']!,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            '${localizations.translate('company')}: ${job['company']}'),
-                        Text(
-                            '${localizations.translate('location')}: ${job['location']}'),
-                      ],
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      RecentJobsManager.saveJob(job);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => JobDetailsScreen(job: job),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+              itemBuilder: (context, index) => _buildJobCard(context, jobs[index], localizations),
             ),
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+      BuildContext context, AppLocalizations localizations, List<Map<String, String>> jobs) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${localizations.translate('jobCategories')}: $category'),
+        centerTitle: true,
+      ),
+      body: jobs.isEmpty
+          ? Center(child: Text(localizations.translate('noJobsAvailable')))
+          : GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 3 / 2,
+              ),
+              itemCount: jobs.length,
+              itemBuilder: (context, index) => _buildJobCard(context, jobs[index], localizations),
+            ),
+    );
+  }
+
+  Widget _buildJobCard(
+      BuildContext context, Map<String, String> job, AppLocalizations localizations) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          job['title']!,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${localizations.translate('company')}: ${job['company']}'),
+            Text('${localizations.translate('location')}: ${job['location']}'),
+          ],
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios),
+        onTap: () {
+          RecentJobsManager.saveJob(job);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => JobDetailsScreen(job: job),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -399,6 +451,14 @@ class JobDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    return withOrientationSupport(
+      context: context,
+      portrait: _buildPortraitLayout(context, localizations),
+      landscape: _buildLandscapeLayout(context, localizations),
+    );
+  }
+
+  Widget _buildPortraitLayout(BuildContext context, AppLocalizations localizations) {
     return Scaffold(
       appBar: AppBar(
         title: Text(job['title']!),
@@ -427,6 +487,57 @@ class JobDetailsScreen extends StatelessWidget {
             Text(
               'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
               style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLayout(BuildContext context, AppLocalizations localizations) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(job['title']!),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${localizations.translate('company')}: ${job['company']}',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '${localizations.translate('location')}: ${job['location']}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    localizations.translate('jobSeekerDashboard'),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

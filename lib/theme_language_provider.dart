@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ThemeLanguageProvider extends ChangeNotifier {
   bool _isDarkMode = false;
@@ -15,25 +16,65 @@ class ThemeLanguageProvider extends ChangeNotifier {
   }
 
   Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool('isDarkTheme') ?? false;
-    _language = prefs.getString('language') ?? 'Русский';
-    _updateLocale(_language);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+        if (doc.exists) {
+          _isDarkMode = doc.data()?['isDarkMode'] ?? false;
+          _language = doc.data()?['language'] ?? 'Русский';
+          _updateLocale(_language);
+        }
+      } catch (e) {
+        print('Error loading preferences from Firestore: $e');
+        // Fallback to defaults
+        _isDarkMode = false;
+        _language = 'Русский';
+        _updateLocale(_language);
+      }
+    } else {
+      // Fallback to defaults if no user is logged in
+      _isDarkMode = false;
+      _language = 'Русский';
+      _updateLocale(_language);
+    }
     notifyListeners();
   }
 
   Future<void> toggleTheme(bool value) async {
     _isDarkMode = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkTheme', value);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'isDarkMode': value,
+          'language': _language,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        print('Error saving theme to Firestore: $e');
+      }
+    }
     notifyListeners();
   }
 
   Future<void> setLanguage(String language) async {
     _language = language;
     _updateLocale(language);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language', language);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'isDarkMode': _isDarkMode,
+          'language': language,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        print('Error saving language to Firestore: $e');
+      }
+    }
     notifyListeners();
   }
 

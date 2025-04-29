@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home.dart';
 import 'register_page.dart';
-import '../models/user.dart';
 import '../localizations.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -17,40 +17,80 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  String? _emailError;
+
+  // Regular expression for email validation
+  final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+
+  void _validateEmail(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _emailError = AppLocalizations.of(context).translate('enterEmail');
+      } else if (!_emailRegex.hasMatch(value)) {
+        _emailError = AppLocalizations.of(context).translate('invalidEmail');
+      } else {
+        _emailError = null;
+      }
+    });
+  }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
+    print('Login button pressed');
+    if (_formKey.currentState!.validate() && _emailError == null) {
       setState(() => _isLoading = true);
-
-      final prefs = await SharedPreferences.getInstance();
-      String? userJson = prefs.getString('user');
-      String? savedPassword = prefs.getString('password');
-
-      if (userJson != null && savedPassword != null) {
-        Map<String, dynamic> userMap = jsonDecode(userJson);
-        User user = User.fromJson(userMap);
-
-        if (_emailController.text == user.email &&
-            _passwordController.text == savedPassword) {
-          Future.delayed(Duration(seconds: 1), () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => HomeScreen(userName: user.name)),
+      try {
+        print('Attempting to sign in with email: ${_emailController.text}');
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
             );
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content:
-                      Text(AppLocalizations.of(context).translate('invalidCredentials'))));
-          setState(() => _isLoading = false);
+        print('User signed in with UID: ${userCredential.user!.uid}');
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => HomeScreen(
+                  userName:
+                      userCredential.user?.displayName ??
+                      userCredential.user?.email ??
+                      '',
+                ),
+          ),
+        );
+      } on FirebaseAuthException catch (e) {
+        print('Login error: $e');
+        String errorMessage;
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = AppLocalizations.of(
+              context,
+            ).translate('userNotFound');
+            break;
+          case 'wrong-password':
+            errorMessage = AppLocalizations.of(
+              context,
+            ).translate('wrongPassword');
+            break;
+          default:
+            errorMessage = AppLocalizations.of(
+              context,
+            ).translate('invalidCredentials');
         }
-      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        setState(() => _isLoading = false);
+      } catch (e) {
+        print('Unexpected error during login: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text(AppLocalizations.of(context).translate('invalidCredentials'))));
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('invalidCredentials'),
+            ),
+          ),
+        );
         setState(() => _isLoading = false);
       }
     }
@@ -59,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
   void _navigateToRegister() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => RegisterPage()),
+      MaterialPageRoute(builder: (context) => const RegisterPage()),
     );
   }
 
@@ -78,52 +118,88 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Text(
                   localizations.translate('welcomeBack'),
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('email'),
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? localizations.translate('enterEmail') : null,
+                const SizedBox(height: 32),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_emailError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          _emailError!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('email'),
+                        prefixIcon: const Icon(Icons.email),
+                        border: const OutlineInputBorder(),
+                        errorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.red),
+                        ),
+                        focusedErrorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.red),
+                        ),
+                      ),
+                      onChanged: _validateEmail,
+                      validator:
+                          (value) =>
+                              value!.isEmpty
+                                  ? localizations.translate('enterEmail')
+                                  : null,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
                     labelText: localizations.translate('password'),
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () =>
-                          setState(() => _isPasswordVisible = !_isPasswordVisible),
-                    ),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? localizations.translate('enterPassword') : null,
-                ),
-                SizedBox(height: 24),
-                _isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _login,
-                        child: Text(localizations.translate('login')),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed:
+                          () => setState(
+                            () => _isPasswordVisible = !_isPasswordVisible,
                           ),
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator:
+                      (value) =>
+                          value!.isEmpty
+                              ? localizations.translate('enterPassword')
+                              : null,
+                ),
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      child: Text(localizations.translate('login')),
+                    ),
                 TextButton(
                   onPressed: _navigateToRegister,
                   child: Text(localizations.translate('dontHaveAccount')),

@@ -1,11 +1,11 @@
 import 'dart:html' as html;
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
-import '../models/user.dart';
 import '../localizations.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -36,16 +36,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final userJson = prefs.getString('user');
     final resumesJson = prefs.getString('resumes');
     final avatar = prefs.getString('avatar');
     final savedStatus = prefs.getString('status');
 
-    if (userJson != null) {
-      final user = User.fromJson(jsonDecode(userJson));
-      _name = user.name;
-      _email = user.email;
+    // Load user data from FirebaseAuth
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _name = user.displayName ?? 'No Name';
+        _email = user.email ?? 'No Email';
+      });
     }
+
     if (resumesJson != null) {
       _resumes = List<Map<String, String>>.from(jsonDecode(resumesJson));
     }

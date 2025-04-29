@@ -1,25 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-
-import 'models/user.dart';
 import 'pages/login_page.dart';
 import 'pages/home.dart';
 import 'theme_language_provider.dart';
 import 'localizations.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    // Инициализация Firebase с опциями для веба
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyAKmQxpHTGgCyDFngNfw_WdEn1MW3lcxhM",
+        authDomain: "flutter-4e118.firebaseapp.com",
+        projectId: "flutter-4e118",
+        storageBucket: "flutter-4e118.firebasestorage.app",
+        messagingSenderId: "866137879876",
+        appId: "1:866137879876:web:8022c25ccfcb62c4055311",
+        measurementId: "G-1ZDP0HQVRW",
+      ),
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Error initializing Firebase: $e');
+  }
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeLanguageProvider(),
-      child: JobRecruitmentApp(),
+      child: const JobRecruitmentApp(),
     ),
   );
 }
 
 class JobRecruitmentApp extends StatelessWidget {
+  const JobRecruitmentApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeLanguageProvider>(
@@ -29,21 +47,20 @@ class JobRecruitmentApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           locale: themeLanguageProvider.locale,
           localizationsDelegates: [
-            // Делегируем локализацию нашему классу
             AppLocalizationsDelegate(),
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: [Locale('en'), Locale('ru'), Locale('kk')],
+          supportedLocales: const [Locale('en'), Locale('ru'), Locale('kk')],
           theme:
               themeLanguageProvider.isDarkMode
                   ? ThemeData(
                     brightness: Brightness.dark,
-                    primaryColor: Color(0xFF1E2A47),
-                    scaffoldBackgroundColor: Color(0xFF1C2526),
-                    cardColor: Color(0xFF2A2F33),
-                    colorScheme: ColorScheme.dark(
+                    primaryColor: const Color(0xFF1E2A47),
+                    scaffoldBackgroundColor: const Color(0xFF1C2526),
+                    cardColor: const Color(0xFF2A2F33),
+                    colorScheme: const ColorScheme.dark(
                       primary: Color(0xFF1E2A47),
                       secondary: Color(0xFF40C4FF),
                       surface: Color(0xFF2A2F33),
@@ -51,7 +68,7 @@ class JobRecruitmentApp extends StatelessWidget {
                       onSecondary: Colors.black,
                       onSurface: Color(0xFFE0E0E0),
                     ),
-                    textTheme: TextTheme(
+                    textTheme: const TextTheme(
                       titleLarge: TextStyle(
                         color: Color(0xFFE0E0E0),
                         fontWeight: FontWeight.bold,
@@ -69,13 +86,13 @@ class JobRecruitmentApp extends StatelessWidget {
                     elevatedButtonTheme: ElevatedButtonThemeData(
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Color(0xFF40C4FF),
+                        backgroundColor: const Color(0xFF40C4FF),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
-                    appBarTheme: AppBarTheme(
+                    appBarTheme: const AppBarTheme(
                       backgroundColor: Color(0xFF1E2A47),
                       titleTextStyle: TextStyle(
                         color: Colors.white,
@@ -89,7 +106,7 @@ class JobRecruitmentApp extends StatelessWidget {
                     primaryColor: Colors.blue,
                     scaffoldBackgroundColor: Colors.white,
                     cardColor: Colors.white,
-                    colorScheme: ColorScheme.light(
+                    colorScheme: const ColorScheme.light(
                       primary: Colors.blue,
                       secondary: Colors.blueAccent,
                       surface: Colors.white,
@@ -97,7 +114,7 @@ class JobRecruitmentApp extends StatelessWidget {
                       onSecondary: Colors.black,
                       onSurface: Colors.black87,
                     ),
-                    textTheme: TextTheme(
+                    textTheme: const TextTheme(
                       titleLarge: TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.bold,
@@ -121,7 +138,7 @@ class JobRecruitmentApp extends StatelessWidget {
                         ),
                       ),
                     ),
-                    appBarTheme: AppBarTheme(
+                    appBarTheme: const AppBarTheme(
                       backgroundColor: Colors.blue,
                       titleTextStyle: TextStyle(
                         color: Colors.white,
@@ -130,15 +147,18 @@ class JobRecruitmentApp extends StatelessWidget {
                       ),
                     ),
                   ),
-          home: FutureBuilder<String?>(
-            future: checkLogin(),
+          home: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Scaffold(
+                return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               } else if (snapshot.hasData && snapshot.data != null) {
-                return HomeScreen(userName: snapshot.data!);
+                return HomeScreen(
+                  userName:
+                      snapshot.data!.displayName ?? snapshot.data!.email ?? '',
+                );
               } else {
                 return LoginPage();
               }
@@ -147,18 +167,6 @@ class JobRecruitmentApp extends StatelessWidget {
         );
       },
     );
-  }
-
-  Future<String?> checkLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? userJson = prefs.getString('user');
-
-    if (userJson != null) {
-      Map<String, dynamic> userMap = jsonDecode(userJson);
-      User user = User.fromJson(userMap);
-      return user.name;
-    }
-    return null;
   }
 }
 
