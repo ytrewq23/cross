@@ -7,7 +7,6 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _translations = {
     'en': {
-      // Существующие переводы (из предыдущих ответов)
       'appTitle': 'Job Recruitment Platform',
       'welcomeBack': 'Welcome Back!',
       'login': 'Login',
@@ -84,7 +83,6 @@ class AppLocalizations {
       'messageSent': 'Message sent successfully!',
       'messageFailed': 'Failed to send message.',
       'error': 'Error',
-      // Новые переводы для SettingsPage и связанных страниц
       'userSettings': 'User Settings',
       'notificationSettings': 'Notification Settings',
       'favourites': 'Favourites',
@@ -101,9 +99,9 @@ class AppLocalizations {
       'favouritesPlaceholder': 'Favourites settings will be implemented here.',
       'failedToOpenAbout': 'Failed to open About page',
       'failedToOpenHelp': 'Failed to open Help page',
+      'continueAsGuest': 'Continue as Guest',
     },
     'ru': {
-      // Существующие переводы
       'appTitle': 'Платформа для поиска работы',
       'welcomeBack': 'С возвращением!',
       'login': 'Войти',
@@ -181,7 +179,6 @@ class AppLocalizations {
       'messageSent': 'Сообщение успешно отправлено!',
       'messageFailed': 'Не удалось отправить сообщение.',
       'error': 'Ошибка',
-      // Новые переводы для SettingsPage и связанных страниц
       'userSettings': 'Настройки пользователя',
       'notificationSettings': 'Настройки уведомлений',
       'favourites': 'Избранное',
@@ -198,9 +195,9 @@ class AppLocalizations {
       'favouritesPlaceholder': 'Здесь будут реализованы настройки избранного.',
       'failedToOpenAbout': 'Не удалось открыть страницу "О приложении"',
       'failedToOpenHelp': 'Не удалось открыть страницу "Помощь"',
+      'continueAsGuest': 'Продолжить как гость',
     },
     'kk': {
-      // Существующие переводы
       'appTitle': 'Жұмыс іздеу платформасы',
       'welcomeBack': 'Қайта оралуыңызбен!',
       'login': 'Кіру',
@@ -269,7 +266,7 @@ class AppLocalizations {
       'contactSupportTitle': 'Қолдау қызметіне хабарласу',
       'supportDescription':
           'Егер сізге көмек қажет болса, төмендегі форманы толтырыңыз, және біздің қолдау тобы сізге жауап береді.',
-      'subject': 'Тақырып',
+      'subject': 'Тақыры Eller',
       'enterSubject': 'Тақырыпты енгізіңіз',
       'message': 'Хабарлама',
       'enterMessage': 'Хабарламаны енгізіңіз',
@@ -278,7 +275,6 @@ class AppLocalizations {
       'messageSent': 'Хабарлама сәтті жіберілді!',
       'messageFailed': 'Хабарламаны жіберу мүмкін болмады.',
       'error': 'Қате',
-      // Новые переводы для SettingsPage и связанных страниц
       'userSettings': 'Пайдаланушы параметрлері',
       'notificationSettings': 'Хабарламалар параметрлері',
       'favourites': 'Таңдаулылар',
@@ -295,6 +291,7 @@ class AppLocalizations {
       'favouritesPlaceholder': 'Мұнда таңдаулылар параметрлері іске асырылады.',
       'failedToOpenAbout': 'Қосымша туралы бетті ашу мүмкін болмады',
       'failedToOpenHelp': 'Көмек бетін ашу мүмкін болмады',
+      'continueAsGuest': 'Қонақ ретінде жалғастыру',
     },
   };
 

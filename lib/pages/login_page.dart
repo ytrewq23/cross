@@ -50,13 +50,11 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => HomeScreen(
-                  userName:
-                      userCredential.user?.displayName ??
-                      userCredential.user?.email ??
-                      '',
-                ),
+            builder: (context) => HomeScreen(
+              userName: userCredential.user?.displayName ??
+                  userCredential.user?.email ??
+                  '',
+            ),
           ),
         );
       } on FirebaseAuthException catch (e) {
@@ -64,23 +62,18 @@ class _LoginPageState extends State<LoginPage> {
         String errorMessage;
         switch (e.code) {
           case 'user-not-found':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('userNotFound');
+            errorMessage = AppLocalizations.of(context).translate('userNotFound');
             break;
           case 'wrong-password':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('wrongPassword');
+            errorMessage = AppLocalizations.of(context).translate('wrongPassword');
             break;
           default:
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('invalidCredentials');
+            errorMessage =
+                AppLocalizations.of(context).translate('invalidCredentials');
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
         setState(() => _isLoading = false);
       } catch (e) {
         print('Unexpected error during login: $e');
@@ -100,6 +93,15 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RegisterPage()),
+    );
+  }
+
+  void _continueAsGuest() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomeScreen(userName: 'Guest'),
+      ),
     );
   }
 
@@ -128,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_emailError != null)
+                    if (_emailError != null) // Fixed condition
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(
@@ -153,11 +155,9 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       onChanged: _validateEmail,
-                      validator:
-                          (value) =>
-                              value!.isEmpty
-                                  ? localizations.translate('enterEmail')
-                                  : null,
+                      validator: (value) => value!.isEmpty
+                          ? localizations.translate('enterEmail')
+                          : null,
                     ),
                   ],
                 ),
@@ -174,36 +174,56 @@ class _LoginPageState extends State<LoginPage> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed:
-                          () => setState(
-                            () => _isPasswordVisible = !_isPasswordVisible,
-                          ),
+                      onPressed: () =>
+                          setState(() => _isPasswordVisible = !_isPasswordVisible),
                     ),
                     border: const OutlineInputBorder(),
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty
-                              ? localizations.translate('enterPassword')
-                              : null,
+                  validator: (value) => value!.isEmpty
+                      ? localizations.translate('enterPassword')
+                      : null,
                 ),
                 const SizedBox(height: 24),
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    : Column(
+                        children: [
+                          ElevatedButton(
+                            onPressed: _login,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(localizations.translate('login')),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: _navigateToRegister,
+                            child: Text(localizations.translate('dontHaveAccount')),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: _continueAsGuest,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              localizations.translate('continueAsGuest'),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(localizations.translate('login')),
-                    ),
-                TextButton(
-                  onPressed: _navigateToRegister,
-                  child: Text(localizations.translate('dontHaveAccount')),
-                ),
               ],
             ),
           ),

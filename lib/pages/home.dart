@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'notification.dart';
 import 'profile.dart';
 import 'search.dart';
@@ -36,6 +37,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  Widget _currentScreen = HomeContent();
 
   final List<Widget> _screens = [
     HomeContent(),
@@ -44,9 +46,34 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfilePage(),
   ];
 
+  bool get _isGuest => widget.userName == 'Guest' || FirebaseAuth.instance.currentUser == null;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _navigateToSearch() {
+    setState(() {
+      _currentScreen = SearchPage();
+    });
+  }
+
+  void _navigateToHome() {
+    setState(() {
+      _currentScreen = HomeContent();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+
+    if (_isGuest) {
+      return _currentScreen;
+    }
+
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -62,11 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.person), label: localizations.translate('profile')),
         ],
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: _onItemTapped,
         selectedItemColor: Theme.of(context).colorScheme.secondary,
         unselectedItemColor:
             Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -107,6 +130,19 @@ class HomeContent extends StatelessWidget {
       appBar: AppBar(
         title: Text(localizations.translate('jobSeekerDashboard')),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+              if (homeState!._isGuest) {
+                homeState._navigateToSearch();
+              } else {
+                homeState._onItemTapped(1); // Navigate to SearchPage via navbar
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -142,6 +178,19 @@ class HomeContent extends StatelessWidget {
       appBar: AppBar(
         title: Text(localizations.translate('jobSeekerDashboard')),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+              if (homeState!._isGuest) {
+                homeState._navigateToSearch();
+              } else {
+                homeState._onItemTapped(1); // Navigate to SearchPage via navbar
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(

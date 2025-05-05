@@ -8,28 +8,22 @@ import 'pages/home.dart';
 import 'theme_language_provider.dart';
 import 'localizations.dart';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    if (!kIsWeb) {
-      // Инициализация только для не-веб платформ
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyAKmQxpHTGgCyDFngNfw_WdEn1MW3lcxhM",
-          authDomain: "flutter-4e118.firebaseapp.com",
-          projectId: "flutter-4e118",
-          storageBucket: "flutter-4e118.firebasestorage.app",
-          messagingSenderId: "866137879876",
-          appId: "1:866137879876:web:8022c25ccfcb62c4055311",
-          measurementId: "G-1ZDP0HQVRW",
-        ),
-      );
-      print('Firebase initialized successfully');
-    } else {
-      print('Firebase already initialized in web/index.html');
-    }
+    // Инициализация Firebase с опциями для веба
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyAKmQxpHTGgCyDFngNfw_WdEn1MW3lcxhM",
+        authDomain: "flutter-4e118.firebaseapp.com",
+        projectId: "flutter-4e118",
+        storageBucket: "flutter-4e118.firebasestorage.app",
+        messagingSenderId: "866137879876",
+        appId: "1:866137879876:web:8022c25ccfcb62c4055311",
+        measurementId: "G-1ZDP0HQVRW",
+      ),
+    );
+    print('Firebase initialized successfully');
   } catch (e) {
     print('Error initializing Firebase: $e');
   }
