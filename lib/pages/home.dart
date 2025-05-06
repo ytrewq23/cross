@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../localizations.dart';
 import '../orientation_support.dart';
+import 'login_page.dart';
 
 class RecentJobsManager {
   static Future<void> saveJob(Map<String, String> job) async {
@@ -46,15 +47,24 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfilePage(),
   ];
 
-  bool get _isGuest => widget.userName == 'Guest' || FirebaseAuth.instance.currentUser == null;
+  bool get _isGuest =>
+      widget.userName == 'Guest' || FirebaseAuth.instance.currentUser == null;
 
   void _onItemTapped(int index) {
+    if (_isGuest && index != 0) {
+      _showLoginPrompt();
+      return;
+    }
     setState(() {
       _selectedIndex = index;
     });
   }
 
   void _navigateToSearch() {
+    if (_isGuest) {
+      _showLoginPrompt();
+      return;
+    }
     setState(() {
       _currentScreen = SearchPage();
     });
@@ -66,35 +76,85 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _showLoginPrompt() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).translate('pleaseLogin')),
+        action: SnackBarAction(
+          label: AppLocalizations.of(context).translate('login'),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
 
-    if (_isGuest) {
-      return _currentScreen;
-    }
-
     return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home), label: localizations.translate('home')),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.search), label: localizations.translate('search')),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: localizations.translate('notifications')),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person), label: localizations.translate('profile')),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Theme.of(context).colorScheme.secondary,
-        unselectedItemColor:
-            Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
+      appBar:
+          _isGuest
+              ? AppBar(
+                title: Text(localizations.translate('jobSeekerDashboard')),
+                centerTitle: true,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      localizations.translate('login'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+              : null,
+      body: _isGuest ? HomeContent() : _screens[_selectedIndex],
+      bottomNavigationBar:
+          _isGuest
+              ? null
+              : BottomNavigationBar(
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: localizations.translate('home'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.search),
+                    label: localizations.translate('search'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.notifications),
+                    label: localizations.translate('notifications'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: localizations.translate('profile'),
+                  ),
+                ],
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+                selectedItemColor: Theme.of(context).colorScheme.secondary,
+                unselectedItemColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.6),
+                backgroundColor: Theme.of(context).colorScheme.surface,
+              ),
     );
   }
 }
@@ -125,25 +185,33 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildPortraitLayout(
-      BuildContext context, AppLocalizations localizations, List<String> categories) {
+    BuildContext context,
+    AppLocalizations localizations,
+    List<String> categories,
+  ) {
+    final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+    final isGuest = homeState?._isGuest ?? false;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.translate('jobSeekerDashboard')),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              final homeState = context.findAncestorStateOfType<_HomeScreenState>();
-              if (homeState!._isGuest) {
-                homeState._navigateToSearch();
-              } else {
-                homeState._onItemTapped(1); // Navigate to SearchPage via navbar
-              }
-            },
-          ),
-        ],
-      ),
+      appBar:
+          isGuest
+              ? null
+              : AppBar(
+                title: Text(localizations.translate('jobSeekerDashboard')),
+                centerTitle: true,
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.search),
+                    onPressed: () {
+                      if (isGuest) {
+                        homeState?._showLoginPrompt();
+                      } else {
+                        homeState?._onItemTapped(1);
+                      }
+                    },
+                  ),
+                ],
+              ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -157,14 +225,19 @@ class HomeContent extends StatelessWidget {
               ),
               SizedBox(
                 height: 200,
-                child: _buildRecentJobs(context, localizations),
+                child: _buildRecentJobs(context, localizations, isGuest),
               ),
               const SizedBox(height: 20),
               Text(
                 localizations.translate('jobCategories'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              _buildCategoryGrid(context, categories, crossAxisCount: 2),
+              _buildCategoryGrid(
+                context,
+                categories,
+                crossAxisCount: 2,
+                isGuest: isGuest,
+              ),
             ],
           ),
         ),
@@ -173,25 +246,33 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildLandscapeLayout(
-      BuildContext context, AppLocalizations localizations, List<String> categories) {
+    BuildContext context,
+    AppLocalizations localizations,
+    List<String> categories,
+  ) {
+    final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+    final isGuest = homeState?._isGuest ?? false;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.translate('jobSeekerDashboard')),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              final homeState = context.findAncestorStateOfType<_HomeScreenState>();
-              if (homeState!._isGuest) {
-                homeState._navigateToSearch();
-              } else {
-                homeState._onItemTapped(1); // Navigate to SearchPage via navbar
-              }
-            },
-          ),
-        ],
-      ),
+      appBar:
+          isGuest
+              ? null
+              : AppBar(
+                title: Text(localizations.translate('jobSeekerDashboard')),
+                centerTitle: true,
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.search),
+                    onPressed: () {
+                      if (isGuest) {
+                        homeState?._showLoginPrompt();
+                      } else {
+                        homeState?._onItemTapped(1);
+                      }
+                    },
+                  ),
+                ],
+              ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -209,7 +290,7 @@ class HomeContent extends StatelessWidget {
                     ),
                     SizedBox(
                       height: 200,
-                      child: _buildRecentJobs(context, localizations),
+                      child: _buildRecentJobs(context, localizations, isGuest),
                     ),
                   ],
                 ),
@@ -224,7 +305,12 @@ class HomeContent extends StatelessWidget {
                       localizations.translate('jobCategories'),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    _buildCategoryGrid(context, categories, crossAxisCount: 3),
+                    _buildCategoryGrid(
+                      context,
+                      categories,
+                      crossAxisCount: 3,
+                      isGuest: isGuest,
+                    ),
                   ],
                 ),
               ),
@@ -235,7 +321,13 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentJobs(BuildContext context, AppLocalizations localizations) {
+  Widget _buildRecentJobs(
+    BuildContext context,
+    AppLocalizations localizations,
+    bool isGuest,
+  ) {
+    final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+
     return FutureBuilder<List<Map<String, String>>>(
       future: RecentJobsManager.getRecentJobs(),
       builder: (context, snapshot) {
@@ -258,6 +350,10 @@ class HomeContent extends StatelessWidget {
             final job = jobs[index];
             return GestureDetector(
               onTap: () {
+                if (isGuest) {
+                  homeState?._showLoginPrompt();
+                  return;
+                }
                 RecentJobsManager.saveJob(job);
                 Navigator.push(
                   context,
@@ -272,7 +368,9 @@ class HomeContent extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -310,7 +408,13 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildCategoryGrid(
-      BuildContext context, List<String> categories, {required int crossAxisCount}) {
+    BuildContext context,
+    List<String> categories, {
+    required int crossAxisCount,
+    required bool isGuest,
+  }) {
+    final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -323,10 +427,16 @@ class HomeContent extends StatelessWidget {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
+            if (isGuest) {
+              homeState?._showLoginPrompt();
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => CategoryJobsScreen(category: categories[index]),
+                builder:
+                    (context) =>
+                        CategoryJobsScreen(category: categories[index]),
               ),
             );
           },
@@ -340,7 +450,9 @@ class HomeContent extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.2),
                   spreadRadius: 2,
                   blurRadius: 5,
                   offset: const Offset(0, 3),
@@ -369,24 +481,52 @@ class CategoryJobsScreen extends StatelessWidget {
 
   static const Map<String, List<Map<String, String>>> categoryJobs = {
     'ИТ': [
-      {'title': 'Flutter Developer', 'company': 'Tech Corp', 'location': 'Remote'},
-      {'title': 'Backend Engineer', 'company': 'Data Inc', 'location': 'San Francisco'},
+      {
+        'title': 'Flutter Developer',
+        'company': 'Tech Corp',
+        'location': 'Remote',
+      },
+      {
+        'title': 'Backend Engineer',
+        'company': 'Data Inc',
+        'location': 'San Francisco',
+      },
     ],
     'Маркетинг': [
-      {'title': 'Digital Marketer', 'company': 'Grow Easy', 'location': 'New York'},
-      {'title': 'Content Strategist', 'company': 'Brand Boost', 'location': 'London'},
+      {
+        'title': 'Digital Marketer',
+        'company': 'Grow Easy',
+        'location': 'New York',
+      },
+      {
+        'title': 'Content Strategist',
+        'company': 'Brand Boost',
+        'location': 'London',
+      },
     ],
     'Продажи': [
       {'title': 'Sales Manager', 'company': 'Sell Well', 'location': 'Chicago'},
     ],
     'Дизайн': [
-      {'title': 'UI/UX Designer', 'company': 'Creative Studio', 'location': 'Berlin'},
+      {
+        'title': 'UI/UX Designer',
+        'company': 'Creative Studio',
+        'location': 'Berlin',
+      },
     ],
     'HR': [
-      {'title': 'HR Specialist', 'company': 'People First', 'location': 'Toronto'},
+      {
+        'title': 'HR Specialist',
+        'company': 'People First',
+        'location': 'Toronto',
+      },
     ],
     'Финансы': [
-      {'title': 'Financial Analyst', 'company': 'Money Wise', 'location': 'Singapore'},
+      {
+        'title': 'Financial Analyst',
+        'company': 'Money Wise',
+        'location': 'Singapore',
+      },
     ],
   };
 
@@ -395,11 +535,13 @@ class CategoryJobsScreen extends StatelessWidget {
   String _getCategoryKey(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     if (category == localizations.translate('categoryIT')) return 'ИТ';
-    if (category == localizations.translate('categoryMarketing')) return 'Маркетинг';
+    if (category == localizations.translate('categoryMarketing'))
+      return 'Маркетинг';
     if (category == localizations.translate('categorySales')) return 'Продажи';
     if (category == localizations.translate('categoryDesign')) return 'Дизайн';
     if (category == localizations.translate('categoryHR')) return 'HR';
-    if (category == localizations.translate('categoryFinance')) return 'Финансы';
+    if (category == localizations.translate('categoryFinance'))
+      return 'Финансы';
     return category;
   }
 
@@ -417,53 +559,79 @@ class CategoryJobsScreen extends StatelessWidget {
   }
 
   Widget _buildPortraitLayout(
-      BuildContext context, AppLocalizations localizations, List<Map<String, String>> jobs) {
+    BuildContext context,
+    AppLocalizations localizations,
+    List<Map<String, String>> jobs,
+  ) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${localizations.translate('jobCategories')}: $category'),
         centerTitle: true,
       ),
-      body: jobs.isEmpty
-          ? Center(child: Text(localizations.translate('noJobsAvailable')))
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: jobs.length,
-              itemBuilder: (context, index) => _buildJobCard(context, jobs[index], localizations),
-            ),
+      body:
+          jobs.isEmpty
+              ? Center(child: Text(localizations.translate('noJobsAvailable')))
+              : ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: jobs.length,
+                itemBuilder:
+                    (context, index) => _buildJobCard(
+                      context,
+                      jobs[index],
+                      localizations,
+                      isGuest,
+                    ),
+              ),
     );
   }
 
   Widget _buildLandscapeLayout(
-      BuildContext context, AppLocalizations localizations, List<Map<String, String>> jobs) {
+    BuildContext context,
+    AppLocalizations localizations,
+    List<Map<String, String>> jobs,
+  ) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${localizations.translate('jobCategories')}: $category'),
         centerTitle: true,
       ),
-      body: jobs.isEmpty
-          ? Center(child: Text(localizations.translate('noJobsAvailable')))
-          : GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 3 / 2,
+      body:
+          jobs.isEmpty
+              ? Center(child: Text(localizations.translate('noJobsAvailable')))
+              : GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 3 / 2,
+                ),
+                itemCount: jobs.length,
+                itemBuilder:
+                    (context, index) => _buildJobCard(
+                      context,
+                      jobs[index],
+                      localizations,
+                      isGuest,
+                    ),
               ),
-              itemCount: jobs.length,
-              itemBuilder: (context, index) => _buildJobCard(context, jobs[index], localizations),
-            ),
     );
   }
 
   Widget _buildJobCard(
-      BuildContext context, Map<String, String> job, AppLocalizations localizations) {
+    BuildContext context,
+    Map<String, String> job,
+    AppLocalizations localizations,
+    bool isGuest,
+  ) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         title: Text(
@@ -479,12 +647,29 @@ class CategoryJobsScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
+          if (isGuest) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(localizations.translate('pleaseLogin')),
+                action: SnackBarAction(
+                  label: localizations.translate('login'),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+            return;
+          }
           RecentJobsManager.saveJob(job);
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => JobDetailsScreen(job: job),
-            ),
+            MaterialPageRoute(builder: (context) => JobDetailsScreen(job: job)),
           );
         },
       ),
@@ -507,12 +692,14 @@ class JobDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPortraitLayout(BuildContext context, AppLocalizations localizations) {
+  Widget _buildPortraitLayout(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(job['title']!),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(job['title']!), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -543,12 +730,14 @@ class JobDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLandscapeLayout(BuildContext context, AppLocalizations localizations) {
+  Widget _buildLandscapeLayout(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(job['title']!),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(job['title']!), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(

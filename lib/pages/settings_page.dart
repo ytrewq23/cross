@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/localizations.dart';
+import 'package:flutter_application_1/theme_language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_application_1/theme_language_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
-import '../localizations.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
@@ -23,97 +26,96 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: Text(
           localizations.translate('settings'),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue,
       ),
       body: ListView(
         children: [
           SwitchListTile(
             title: Text(
               localizations.translate('darkTheme'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             value: themeProvider.isDarkMode,
             onChanged: (value) {
               themeProvider.toggleTheme(value);
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('userSettings'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to UserSettingsPage'); // Debug log
+              print('Navigating to UserSettingsPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => UserSettingsPage()),
+                MaterialPageRoute(builder: (context) => const UserSettingsPage()),
               );
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('notificationSettings'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to NotificationSettingsPage'); // Debug log
+              print('Navigating to NotificationSettingsPage');
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => NotificationSettingsPage(),
+                  builder: (context) => const NotificationSettingsPage(),
                 ),
               );
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('language'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to LanguageSettingsPage'); // Debug log
+              print('Navigating to LanguageSettingsPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => LanguageSettingsPage()),
+                MaterialPageRoute(builder: (context) => const LanguageSettingsPage()),
               );
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('favourites'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to FavouritesPage'); // Debug log
+              print('Navigating to FavouritesPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => FavouritesPage()),
+                MaterialPageRoute(builder: (context) => const FavouritesPage()),
               );
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('aboutTheApp'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to AboutPage'); // Debug log
+              print('Navigating to AboutPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AboutPage()),
+                MaterialPageRoute(builder: (context) =>  AboutPage()),
               ).catchError((e) {
                 print('Error navigating to AboutPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -124,18 +126,18 @@ class _SettingsPageState extends State<SettingsPage> {
               });
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('help'),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              print('Navigating to HelpPage'); // Debug log
+              print('Navigating to HelpPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => HelpPage()),
+                MaterialPageRoute(builder: (context) =>  HelpPage()),
               ).catchError((e) {
                 print('Error navigating to HelpPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -146,25 +148,70 @@ class _SettingsPageState extends State<SettingsPage> {
               });
             },
           ),
-          Divider(),
+          const Divider(),
           ListTile(
             title: Text(
               localizations.translate('logout'),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
               ),
             ),
-            onTap: () async {
-              print('Logging out'); // Debug log
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('user');
-              await prefs.remove('password');
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => LoginPage()),
-                (route) => false,
+            onTap: () {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text(localizations.translate('confirmLogout')),
+                  content: Text(localizations.translate('confirmLogoutMessage')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text(localizations.translate('cancel')),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext);
+                        print('Logging out');
+                        try {
+                          Provider.of<ThemeLanguageProvider>(context, listen: false)
+                              .resetPreferences();
+                          await FirebaseAuth.instance.signOut();
+                          print('Firebase sign out successful');
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.remove('user');
+                          await prefs.remove('password');
+                          await prefs.remove('resumes');
+                          await prefs.remove('avatar');
+                          await prefs.remove('status');
+                          print('SharedPreferences cleared');
+                          await Future.delayed(const Duration(milliseconds: 100));
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginPage()),
+                              (route) => false,
+                            );
+                          }
+                        } catch (e) {
+                          print('Error during logout: $e');
+                          if (context.mounted) {
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  localizations.translate('logoutFailed') ??
+                                      'Failed to log out',
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: Text(localizations.translate('logout')),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -174,8 +221,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// User Settings Page
 class UserSettingsPage extends StatefulWidget {
+  const UserSettingsPage({super.key});
+
   @override
   _UserSettingsPageState createState() => _UserSettingsPageState();
 }
@@ -233,9 +281,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       appBar: AppBar(
         title: Text(
           localizations.translate('userSettings'),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -246,40 +293,26 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: localizations.translate('newName'),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _updateName,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
               child: Text(localizations.translate('updateName')),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
                 labelText: localizations.translate('newPassword'),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               obscureText: true,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _updatePassword,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
               child: Text(localizations.translate('updatePassword')),
             ),
           ],
@@ -289,11 +322,11 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 }
 
-// Notification Settings Page
 class NotificationSettingsPage extends StatefulWidget {
+  const NotificationSettingsPage({super.key});
+
   @override
-  _NotificationSettingsPageState createState() =>
-      _NotificationSettingsPageState();
+  _NotificationSettingsPageState createState() => _NotificationSettingsPageState();
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
@@ -306,9 +339,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       appBar: AppBar(
         title: Text(
           localizations.translate('notificationSettings'),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -326,8 +358,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 }
 
-// Language Settings Page
 class LanguageSettingsPage extends StatefulWidget {
+  const LanguageSettingsPage({super.key});
+
   @override
   _LanguageSettingsPageState createState() => _LanguageSettingsPageState();
 }
@@ -342,9 +375,8 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
       appBar: AppBar(
         title: Text(
           localizations.translate('language'),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -352,7 +384,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
           children: [
             RadioListTile<String>(
               title: Text(localizations.translate('languageKazakh')),
-              value: localizations.translate('languageKazakh'),
+              value: 'Қазақша',
               groupValue: themeProvider.language,
               onChanged: (value) {
                 if (value != null) {
@@ -362,7 +394,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
             ),
             RadioListTile<String>(
               title: Text(localizations.translate('languageRussian')),
-              value: localizations.translate('languageRussian'),
+              value: 'Русский',
               groupValue: themeProvider.language,
               onChanged: (value) {
                 if (value != null) {
@@ -372,7 +404,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
             ),
             RadioListTile<String>(
               title: Text(localizations.translate('languageEnglish')),
-              value: localizations.translate('languageEnglish'),
+              value: 'English',
               groupValue: themeProvider.language,
               onChanged: (value) {
                 if (value != null) {
@@ -387,8 +419,9 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
   }
 }
 
-// Favourites Page
 class FavouritesPage extends StatelessWidget {
+  const FavouritesPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -396,15 +429,14 @@ class FavouritesPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           localizations.translate('favourites'),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
           localizations.translate('favouritesPlaceholder'),
-          style: TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 16),
         ),
       ),
     );

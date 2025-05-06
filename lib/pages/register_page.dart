@@ -68,10 +68,12 @@ class _RegisterPageState extends State<RegisterPage> {
           'User data saved to Firestore for UID: ${userCredential.user!.uid}',
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
+        if (context.mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        }
       } on FirebaseAuthException catch (e) {
         print('Registration error: $e');
         String errorMessage;
@@ -96,20 +98,32 @@ class _RegisterPageState extends State<RegisterPage> {
               context,
             ).translate('registrationFailed');
         }
-        setState(() {
-          _emailError = errorMessage;
-          _isLoading = false;
-        });
+        if (context.mounted) {
+          setState(() {
+            _emailError = errorMessage;
+            _isLoading = false;
+          });
+        }
       } catch (e) {
         print('Unexpected error during registration: $e');
-        setState(() {
-          _emailError = AppLocalizations.of(
-            context,
-          ).translate('registrationFailed');
-          _isLoading = false;
-        });
+        if (context.mounted) {
+          setState(() {
+            _emailError = AppLocalizations.of(
+              context,
+            ).translate('registrationFailed');
+            _isLoading = false;
+          });
+        }
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -215,7 +229,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                      onPressed: _register,
+                      onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(

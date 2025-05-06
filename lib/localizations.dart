@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class AppLocalizations {
   final Locale locale;
@@ -17,6 +18,10 @@ class AppLocalizations {
       'language': 'Language',
       'darkTheme': 'Dark Theme',
       'logout': 'Logout',
+      'confirmLogout': 'Confirm Logout',
+      'confirmLogoutMessage': 'Are you sure you want to log out?',
+      'cancel': 'Cancel',
+      'logoutFailed': 'Failed to log out. Please try again.',
       'contactSupport': 'Contact Support',
       'jobSeekerDashboard': 'Job Seeker Dashboard',
       'recentJobs': 'Recent Jobs',
@@ -27,6 +32,12 @@ class AppLocalizations {
       'enterEmail': 'Please enter your email',
       'enterPassword': 'Please enter your password',
       'invalidCredentials': 'Invalid credentials',
+      'invalidEmail': 'Invalid email format',
+      'userNotFound': 'No user found for that email',
+      'wrongPassword': 'Wrong password provided',
+      'emailAlreadyInUse': 'The email address is already in use',
+      'weakPassword': 'The password is too weak',
+      'registrationFailed': 'Registration failed. Please try again.',
       'dontHaveAccount': 'Don\'t have an account? Sign Up',
       'noJobsAvailable': 'No jobs available in this category',
       'company': 'Company',
@@ -55,8 +66,7 @@ class AppLocalizations {
       'statusFound': 'Found a job',
       'statusNotLooking': 'Not looking for a job',
       'takePhoto': 'Take Photo',
-      'cameraActive': 'Camera is active. Press to take a photo.',
-      'cancel': 'Cancel',
+      'cameraActive': 'Active. Press to take a photo.',
       'version': 'Version 1.0.0',
       'aboutUs': 'About Us',
       'aboutDescription':
@@ -86,8 +96,8 @@ class AppLocalizations {
       'userSettings': 'User Settings',
       'notificationSettings': 'Notification Settings',
       'favourites': 'Favourites',
-      'languageKazakh': 'Kazakh',
-      'languageRussian': 'Russian',
+      'languageKazakh': 'Қазақша',
+      'languageRussian': 'Русский',
       'languageEnglish': 'English',
       'newName': 'New Name',
       'newPassword': 'New Password',
@@ -100,6 +110,8 @@ class AppLocalizations {
       'failedToOpenAbout': 'Failed to open About page',
       'failedToOpenHelp': 'Failed to open Help page',
       'continueAsGuest': 'Continue as Guest',
+      'findYourDreamJob': 'Find Your Dream Job',
+      'pleaseLogin': 'Please log in to access this feature',
     },
     'ru': {
       'appTitle': 'Платформа для поиска работы',
@@ -112,6 +124,10 @@ class AppLocalizations {
       'language': 'Язык',
       'darkTheme': 'Темная тема',
       'logout': 'Выйти',
+      'confirmLogout': 'Подтверждение выхода',
+      'confirmLogoutMessage': 'Вы уверены, что хотите выйти?',
+      'cancel': 'Отмена',
+      'logoutFailed': 'Не удалось выйти из системы. Попробуйте снова.',
       'contactSupport': 'Связаться с поддержкой',
       'jobSeekerDashboard': 'Панель соискателя',
       'recentJobs': 'Недавние вакансии',
@@ -122,6 +138,12 @@ class AppLocalizations {
       'enterEmail': 'Пожалуйста, введите вашу электронную почту',
       'enterPassword': 'Пожалуйста, введите ваш пароль',
       'invalidCredentials': 'Неверные учетные данные',
+      'invalidEmail': 'Неверный формат электронной почты',
+      'userNotFound': 'Пользователь с таким email не найден',
+      'wrongPassword': 'Неверный пароль',
+      'emailAlreadyInUse': 'Этот email уже используется',
+      'weakPassword': 'Пароль слишком слабый',
+      'registrationFailed': 'Регистрация не удалась. Попробуйте снова.',
       'dontHaveAccount': 'Нет аккаунта? Зарегистрируйтесь',
       'noJobsAvailable': 'В этой категории нет доступных вакансий',
       'company': 'Компания',
@@ -151,7 +173,6 @@ class AppLocalizations {
       'statusNotLooking': 'Не ищу работу',
       'takePhoto': 'Сделать фото',
       'cameraActive': 'Камера активна. Нажмите, чтобы сделать снимок.',
-      'cancel': 'Отмена',
       'version': 'Версия 1.0.0',
       'aboutUs': 'О нас',
       'aboutDescription':
@@ -196,6 +217,8 @@ class AppLocalizations {
       'failedToOpenAbout': 'Не удалось открыть страницу "О приложении"',
       'failedToOpenHelp': 'Не удалось открыть страницу "Помощь"',
       'continueAsGuest': 'Продолжить как гость',
+      'findYourDreamJob': 'Найдите работу своей мечты',
+      'pleaseLogin': 'Пожалуйста, войдите, чтобы получить доступ к этой функции',
     },
     'kk': {
       'appTitle': 'Жұмыс іздеу платформасы',
@@ -208,6 +231,10 @@ class AppLocalizations {
       'language': 'Тіл',
       'darkTheme': 'Қараңғы тақырып',
       'logout': 'Шығу',
+      'confirmLogout': 'Шығуды растау',
+      'confirmLogoutMessage': 'Сіз шығуға сенімдісіз бе?',
+      'cancel': 'Болдырмау',
+      'logoutFailed': 'Жүйеден шығу сәтсіз аяқталды. Қайтадан көріңіз.',
       'contactSupport': 'Қолдау қызметіне хабарласу',
       'jobSeekerDashboard': 'Жұмыс іздеуші панелі',
       'recentJobs': 'Соңғы жұмыс орындары',
@@ -218,6 +245,12 @@ class AppLocalizations {
       'enterEmail': 'Электрондық поштаңызды енгізіңіз',
       'enterPassword': 'Құпия сөзіңізді енгізіңіз',
       'invalidCredentials': 'Жарамсыз мәліметтер',
+      'invalidEmail': 'Электрондық пошта форматы жарамсыз',
+      'userNotFound': 'Бұл email үшін пайдаланушы табылмады',
+      'wrongPassword': 'Қате құпия сөз енгізілді',
+      'emailAlreadyInUse': 'Бұл email адресі әлдеқашан қолданылуда',
+      'weakPassword': 'Құпия сөз тым әлсіз',
+      'registrationFailed': 'Тіркеу сәтсіз аяқталды. Қайтадан көріңіз.',
       'dontHaveAccount': 'Есептік жазбаңыз жоқ па? Тіркеліңіз',
       'noJobsAvailable': 'Бұл санатта жұмыс орындары жоқ',
       'company': 'Компания',
@@ -247,7 +280,6 @@ class AppLocalizations {
       'statusNotLooking': 'Жұмыс іздемеймін',
       'takePhoto': 'Фото жасау',
       'cameraActive': 'Камера белсенді. Суретке түсіру үшін басыңыз.',
-      'cancel': 'Болдырмау',
       'version': 'Нұсқа 1.0.0',
       'aboutUs': 'Біз туралы',
       'aboutDescription':
@@ -266,7 +298,7 @@ class AppLocalizations {
       'contactSupportTitle': 'Қолдау қызметіне хабарласу',
       'supportDescription':
           'Егер сізге көмек қажет болса, төмендегі форманы толтырыңыз, және біздің қолдау тобы сізге жауап береді.',
-      'subject': 'Тақыры Eller',
+      'subject': 'Тақырып',
       'enterSubject': 'Тақырыпты енгізіңіз',
       'message': 'Хабарлама',
       'enterMessage': 'Хабарламаны енгізіңіз',
@@ -292,14 +324,36 @@ class AppLocalizations {
       'failedToOpenAbout': 'Қосымша туралы бетті ашу мүмкін болмады',
       'failedToOpenHelp': 'Көмек бетін ашу мүмкін болмады',
       'continueAsGuest': 'Қонақ ретінде жалғастыру',
+      'findYourDreamJob': 'Арманыңыздағы жұмысты табыңыз',
+      'pleaseLogin': 'Бұл функцияға кіру үшін жүйеге кіріңіз',
     },
   };
 
   static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        AppLocalizations(const Locale('ru'));
   }
 
   String translate(String key) {
-    return _translations[locale.languageCode]?[key] ?? _translations['en']![key]!;
+    return _translations[locale.languageCode]?[key] ??
+        _translations['ru']?[key] ??
+        key;
   }
+}
+
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) {
+    return ['en', 'ru', 'kk'].contains(locale.languageCode);
+  }
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return SynchronousFuture<AppLocalizations>(AppLocalizations(locale));
+  }
+
+  @override
+  bool shouldReload(AppLocalizationsDelegate old) => false;
 }

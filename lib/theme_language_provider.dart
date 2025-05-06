@@ -5,25 +5,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ThemeLanguageProvider extends ChangeNotifier {
   bool _isDarkMode = false;
   String _language = 'Русский';
-  Locale _locale = Locale('ru');
+  Locale _locale = const Locale('ru');
+  bool _isInitialized = false;
 
   bool get isDarkMode => _isDarkMode;
   String get language => _language;
   Locale get locale => _locale;
+  bool get isInitialized => _isInitialized;
 
   ThemeLanguageProvider() {
     _loadPreferences();
   }
 
   Future<void> _loadPreferences() async {
+    if (_isInitialized) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final doc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (doc.exists) {
           _isDarkMode = doc.data()?['isDarkMode'] ?? false;
           _language = doc.data()?['language'] ?? 'Русский';
@@ -31,17 +33,16 @@ class ThemeLanguageProvider extends ChangeNotifier {
         }
       } catch (e) {
         print('Error loading preferences from Firestore: $e');
-        // Fallback to defaults
         _isDarkMode = false;
         _language = 'Русский';
         _updateLocale(_language);
       }
     } else {
-      // Fallback to defaults if no user is logged in
       _isDarkMode = false;
       _language = 'Русский';
       _updateLocale(_language);
     }
+    _isInitialized = true;
     notifyListeners();
   }
 
@@ -81,16 +82,24 @@ class ThemeLanguageProvider extends ChangeNotifier {
   void _updateLocale(String language) {
     switch (language) {
       case 'Русский':
-        _locale = Locale('ru');
+        _locale = const Locale('ru');
         break;
       case 'Қазақша':
-        _locale = Locale('kk');
+        _locale = const Locale('kk');
         break;
       case 'English':
-        _locale = Locale('en');
+        _locale = const Locale('en');
         break;
       default:
-        _locale = Locale('ru');
+        _locale = const Locale('ru');
     }
+  }
+
+  void resetPreferences() {
+    _isDarkMode = false;
+    _language = 'Русский';
+    _locale = const Locale('ru');
+    _isInitialized = false;
+    notifyListeners();
   }
 }
