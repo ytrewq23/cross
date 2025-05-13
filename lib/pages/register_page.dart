@@ -20,7 +20,6 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String? _emailError;
 
-  // Regular expression for email validation
   final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
   void _validateEmail(String value) {
@@ -36,16 +35,15 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _register() async {
+    if (!mounted) return;
+
     print('Register button pressed');
-    // Validate email format before attempting Firebase registration
     _validateEmail(_emailController.text.trim());
 
     if (_formKey.currentState!.validate() && _emailError == null) {
       setState(() => _isLoading = true);
       try {
-        print(
-          'Attempting to register user with email: ${_emailController.text}',
-        );
+        print('Attempting to register user with email: ${_emailController.text}');
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
               email: _emailController.text.trim(),
@@ -63,12 +61,18 @@ class _RegisterPageState extends State<RegisterPage> {
               'name': _nameController.text,
               'email': _emailController.text.trim(),
               'id': DateTime.now().millisecondsSinceEpoch,
+              'role': '', // Пустая роль, выбор в HomeScreen
             });
-        print(
-          'User data saved to Firestore for UID: ${userCredential.user!.uid}',
-        );
+        print('User data saved to Firestore for UID: ${userCredential.user!.uid}');
 
-        if (context.mounted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).translate('registrationSuccess'),
+              ),
+            ),
+          );
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -79,26 +83,18 @@ class _RegisterPageState extends State<RegisterPage> {
         String errorMessage;
         switch (e.code) {
           case 'email-already-in-use':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('emailAlreadyInUse');
+            errorMessage = AppLocalizations.of(context).translate('emailAlreadyInUse');
             break;
           case 'weak-password':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('weakPassword');
+            errorMessage = AppLocalizations.of(context).translate('weakPassword');
             break;
           case 'invalid-email':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('invalidEmail');
+            errorMessage = AppLocalizations.of(context).translate('invalidEmail');
             break;
           default:
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('registrationFailed');
+            errorMessage = AppLocalizations.of(context).translate('registrationFailed');
         }
-        if (context.mounted) {
+        if (mounted) {
           setState(() {
             _emailError = errorMessage;
             _isLoading = false;
@@ -106,11 +102,9 @@ class _RegisterPageState extends State<RegisterPage> {
         }
       } catch (e) {
         print('Unexpected error during registration: $e');
-        if (context.mounted) {
+        if (mounted) {
           setState(() {
-            _emailError = AppLocalizations.of(
-              context,
-            ).translate('registrationFailed');
+            _emailError = AppLocalizations.of(context).translate('registrationFailed');
             _isLoading = false;
           });
         }
@@ -155,11 +149,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     prefixIcon: const Icon(Icons.person),
                     border: const OutlineInputBorder(),
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty
-                              ? localizations.translate('enterName')
-                              : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterName') : null,
                 ),
                 const SizedBox(height: 16),
                 Column(
@@ -212,35 +203,30 @@ class _RegisterPageState extends State<RegisterPage> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed:
-                          () => setState(
-                            () => _isPasswordVisible = !_isPasswordVisible,
-                          ),
+                      onPressed: () =>
+                          setState(() => _isPasswordVisible = !_isPasswordVisible),
                     ),
                     border: const OutlineInputBorder(),
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty
-                              ? localizations.translate('enterPassword')
-                              : null,
+                  validator: (value) =>
+                      value!.isEmpty ? localizations.translate('enterPassword') : null,
                 ),
                 const SizedBox(height: 24),
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                      onPressed: _isLoading ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        onPressed: _isLoading ? null : _register,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
+                        child: Text(localizations.translate('register')),
                       ),
-                      child: Text(localizations.translate('register')),
-                    ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LoginPage(),

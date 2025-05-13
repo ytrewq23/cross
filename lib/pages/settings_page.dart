@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/localizations.dart';
-import 'package:flutter_application_1/theme_language_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
+import '../localizations.dart';
+import '../theme_language_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -115,7 +115,7 @@ class _SettingsPageState extends State<SettingsPage> {
               print('Navigating to AboutPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  AboutPage()),
+                MaterialPageRoute(builder: (context) => AboutPage()),
               ).catchError((e) {
                 print('Error navigating to AboutPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -137,7 +137,7 @@ class _SettingsPageState extends State<SettingsPage> {
               print('Navigating to HelpPage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  HelpPage()),
+                MaterialPageRoute(builder: (context) => HelpPage()),
               ).catchError((e) {
                 print('Error navigating to HelpPage: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -175,8 +175,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         Navigator.pop(dialogContext);
                         print('Logging out');
                         try {
-                          Provider.of<ThemeLanguageProvider>(context, listen: false)
-                              .resetPreferences();
                           await FirebaseAuth.instance.signOut();
                           print('Firebase sign out successful');
                           final prefs = await SharedPreferences.getInstance();
@@ -186,7 +184,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           await prefs.remove('avatar');
                           await prefs.remove('status');
                           print('SharedPreferences cleared');
-                          await Future.delayed(const Duration(milliseconds: 100));
                           if (context.mounted) {
                             Navigator.pushAndRemoveUntil(
                               context,

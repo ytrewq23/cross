@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_application_1/localizations.dart';
+import '../localizations.dart';
 import 'home.dart';
 import 'register_page.dart';
 
@@ -21,6 +21,13 @@ class _LoginPageState extends State<LoginPage> {
 
   final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _validateEmail(String value) {
     setState(() {
       if (value.isEmpty) {
@@ -34,7 +41,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _login() async {
-    print('Login button pressed');
+    if (!mounted) return;
+
     if (_formKey.currentState!.validate() && _emailError == null) {
       setState(() => _isLoading = true);
       try {
@@ -45,7 +53,8 @@ class _LoginPageState extends State<LoginPage> {
               password: _passwordController.text,
             );
         print('User signed in with UID: ${userCredential.user!.uid}');
-        if (context.mounted) {
+
+        if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -61,6 +70,8 @@ class _LoginPageState extends State<LoginPage> {
         }
       } on FirebaseAuthException catch (e) {
         print('Login error: $e');
+        if (!mounted) return;
+
         String errorMessage;
         switch (e.code) {
           case 'user-not-found':
@@ -78,29 +89,29 @@ class _LoginPageState extends State<LoginPage> {
               context,
             ).translate('invalidCredentials');
         }
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
-        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
         setState(() => _isLoading = false);
       } catch (e) {
         print('Unexpected error during login: $e');
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).translate('invalidCredentials'),
-              ),
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('invalidCredentials'),
             ),
-          );
-        }
+          ),
+        );
         setState(() => _isLoading = false);
       }
     }
   }
 
   void _navigateToRegister() {
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RegisterPage()),
@@ -108,6 +119,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _continueAsGuest() {
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomeScreen(userName: 'Guest')),
@@ -247,12 +260,5 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }

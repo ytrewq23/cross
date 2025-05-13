@@ -6,13 +6,14 @@ class NotificationsPage extends StatefulWidget {
   _NotificationsPageState createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> with TickerProviderStateMixin {
+class _NotificationsPageState extends State<NotificationsPage>
+    with TickerProviderStateMixin {
   final List<String> notifications = [
     'Welcome to the app!',
     'Your profile was updated.',
     'New message received.',
     'Reminder: Meeting at 5 PM.',
-    'Your report is ready to view.'
+    'Your report is ready to view.',
   ];
 
   late final List<AnimationController> _controllers = [];
@@ -32,27 +33,16 @@ class _NotificationsPageState extends State<NotificationsPage> with TickerProvid
       final slide = Tween<Offset>(
         begin: Offset(1, 0), // from right to left
         end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeOut,
-      ));
+      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
 
       final fade = Tween<double>(
         begin: 0.0,
         end: 1.0,
-      ).animate(CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeIn,
-      ));
+      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeIn));
 
       _controllers.add(controller);
       _slideAnimations.add(slide);
       _fadeAnimations.add(fade);
-
-      // Stagger animations with delay
-      Future.delayed(Duration(milliseconds: i * 300), () {
-        controller.forward();
-      });
     }
   }
 
