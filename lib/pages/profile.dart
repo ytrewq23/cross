@@ -3,17 +3,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/pages/offline_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'settings_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
 import 'create_job_screen.dart';
 import 'edit_job_screen.dart';
 import 'role_selection_dialog.dart';
-import 'apply_job_screen.dart';
 import '../localizations.dart';
 import '../orientation_support.dart';
-import 'offline_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,7 +26,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String _name = '';
   String _email = '';
-  List<Map<String, String>> _resumes = [];
+  List<Map<String, dynamic>> _jobs = [];
   String _status = 'statusActive';
   final List<String> _statuses = [
     'statusActive',
@@ -36,324 +37,315 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isVerified = false;
   String? _userRole;
   bool _isLoading = true;
+  bool _isOnline = true;
+  bool _hasPendingRequests = false;
 
   static const String _placeholderAvatar = 'assets/avatar_placeholder.jpg';
 
   @override
   void initState() {
     super.initState();
+    _initializeOfflineService();
     _loadUserData();
   }
 
+  Future<void> _initializeOfflineService() async {
+    await OfflineService().init();
+    setState(() {
+      _isOnline = OfflineService().isOnline;
+    });
+    if (kIsWeb) {
+      html.window.addEventListener('online', (_) {
+        if (mounted) {
+          setState(() {
+            _isOnline = true;
+          });
+          _handleReconnect();
+        }
+      });
+      html.window.addEventListener('offline', (_) {
+        if (mounted) {
+          setState(() {
+            _isOnline = false;
+          });
+        }
+      });
+    } else {
+      Connectivity().onConnectivityChanged.listen((results) {
+        if (mounted) {
+          final newOnline = results.any(
+            (result) => result != ConnectivityResult.none,
+          );
+          setState(() {
+            _isOnline = newOnline;
+          });
+          if (newOnline && !_isOnline) {
+            _handleReconnect();
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> _handleReconnect() async {
+    await OfflineService().syncAndNotify(context, () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).translate('requestsProcessedSuccess'),
+            ),
+          ),
+        );
+        setState(() {
+          _hasPendingRequests = false;
+        });
+        _loadUserData();
+      }
+    });
+  }
+
   Future<void> _loadUserData() async {
+    setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final avatar = prefs.getString('avatar');
     final savedStatus = prefs.getString('status');
-    final isOffline = !OfflineService().isOnline;
-
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _name = 'No Name';
+          _email = 'No Email';
+          _userRole = '';
+          _jobs = [];
+          _avatarBase64 = avatar;
+          _isVerified = avatar != null;
+          _isLoading = false;
+        });
+      }
       return;
     }
 
     try {
-      if (isOffline) {
-        final offlineResume = await OfflineService().getResumeOffline();
-        if (mounted) {
-          setState(() {
-            _name = prefs.getString('user_name') ?? 'No Name';
-            _email = prefs.getString('user_email') ?? 'No Email';
-            _userRole = prefs.getString('user_role');
-            _isLoading = false;
-            if (offlineResume != null) {
-              _resumes = [
-                {
-                  'profession': offlineResume['profession'] as String,
-                  'date': offlineResume['date'] as String,
-                  'name': offlineResume['name'] as String,
-                  'email': offlineResume['email'] as String,
-                },
-              ];
-            }
-            if (savedStatus != null && _statuses.contains(savedStatus)) {
-              _status = savedStatus;
-            }
-            _avatarBase64 = avatar;
-            if (_avatarBase64 != null) {
-              _isVerified = true;
-            }
-          });
+      if (_isOnline) {
+        // Try Firestore first
+        try {
+          final userDoc =
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get();
+          final jobsSnapshot =
+              await FirebaseFirestore.instance
+                  .collection('jobs')
+                  .where('employerId', isEqualTo: user.uid)
+                  .get();
+
+          if (mounted) {
+            setState(() {
+              _name = user.displayName ?? prefs.getString('name') ?? 'No Name';
+              _email = user.email ?? prefs.getString('email') ?? 'No Email';
+              _userRole =
+                  userDoc.data()?['role'] as String? ??
+                  prefs.getString('userRole') ??
+                  '';
+              _jobs =
+                  jobsSnapshot.docs
+                      .map((doc) => {...doc.data(), 'id': doc.id})
+                      .toList();
+              if (savedStatus != null && _statuses.contains(savedStatus)) {
+                _status = savedStatus;
+              }
+              _avatarBase64 = avatar;
+              _isVerified = avatar != null;
+              _isLoading = false;
+            });
+            // Cache to SharedPreferences
+            await prefs.setString('name', _name);
+            await prefs.setString('email', _email);
+            await prefs.setString('userRole', _userRole ?? '');
+            await OfflineService().saveJobsListOffline(_jobs);
+          }
+        } catch (e) {
+          print('Firestore error: $e');
+          // Fall back to SharedPreferences
+          final offlineJobs = await OfflineService().getJobsListOffline();
+          if (mounted) {
+            setState(() {
+              _name = prefs.getString('name') ?? user.displayName ?? 'No Name';
+              _email = prefs.getString('email') ?? user.email ?? 'No Email';
+              _userRole = prefs.getString('userRole') ?? '';
+              _jobs = offlineJobs;
+              if (savedStatus != null && _statuses.contains(savedStatus)) {
+                _status = savedStatus;
+              }
+              _avatarBase64 = avatar;
+              _isVerified = avatar != null;
+              _isLoading = false;
+            });
+          }
         }
       } else {
-        final userDoc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .get();
-        final resumeDoc =
-            await FirebaseFirestore.instance
-                .collection('resumes')
-                .doc(user.uid)
-                .get();
+        // Load from SharedPreferences offline
+        final offlineJobs = await OfflineService().getJobsListOffline();
         if (mounted) {
           setState(() {
-            _name = user.displayName ?? 'No Name';
-            _email = user.email ?? 'No Email';
-            _userRole = userDoc.data()?['role'] as String?;
-            _isLoading = false;
-            if (resumeDoc.exists) {
-              final resumeData = resumeDoc.data()!;
-              _resumes = [
-                {
-                  'profession': resumeData['profession'] as String,
-                  'date': resumeData['date'] as String,
-                  'name': resumeData['name'] as String,
-                  'email': resumeData['email'] as String,
-                },
-              ];
-              // Сохраняем резюме оффлайн
-              OfflineService().saveResumeOffline(resumeData);
-            }
+            _name = prefs.getString('name') ?? user.displayName ?? 'No Name';
+            _email = prefs.getString('email') ?? user.email ?? 'No Email';
+            _userRole = prefs.getString('userRole') ?? '';
+            _jobs = offlineJobs;
             if (savedStatus != null && _statuses.contains(savedStatus)) {
               _status = savedStatus;
             }
             _avatarBase64 = avatar;
-            if (_avatarBase64 != null) {
-              _isVerified = true;
-            }
+            _isVerified = avatar != null;
+            _isLoading = false;
           });
-          // Сохраняем данные для оффлайн-доступа
-          await prefs.setString('user_name', _name);
-          await prefs.setString('user_email', _email);
-          if (_userRole != null) {
-            await prefs.setString('user_role', _userRole!);
-          }
         }
       }
     } catch (e) {
       print('Error loading user data: $e');
       if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
+        setState(() {
+          _name = prefs.getString('name') ?? user.displayName ?? 'No Name';
+          _email = prefs.getString('email') ?? user.email ?? 'No Email';
+          _userRole = prefs.getString('userRole') ?? '';
+          _jobs = [];
+          _avatarBase64 = avatar;
+          _isVerified = avatar != null;
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('connectToInternet'),
+            ),
+          ),
+        );
       }
     }
   }
 
-  Future<void> _updateStatus(String newStatus) async {
+  Future<void> _saveAvatar(String base64Image) async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _status = newStatus;
-      });
-      await prefs.setString('status', newStatus);
-    }
+    await prefs.setString('avatar', base64Image);
   }
 
-  Future<void> _uploadAvatar() async {
-    if (!await OfflineService().checkConnection()) {
-      OfflineService().showOfflineSnackBar(context);
-      return;
-    }
-
-    final input = html.FileUploadInputElement()..accept = 'image/*';
-    input.click();
-
-    input.onChange.listen((e) async {
-      final files = input.files;
-      if (files!.isEmpty) return;
-
-      final reader = html.FileReader();
-      reader.readAsDataUrl(files[0]);
-      reader.onLoadEnd.listen((e) async {
-        final base64String = reader.result as String;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('avatar', base64String);
-
-        if (mounted) {
-          setState(() {
-            _avatarBase64 = base64String;
-            _isVerified = true;
-          });
-        }
-      });
-    });
+  Future<void> _saveStatus(String status) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('status', status);
   }
 
-  Future<void> _updateResume() async {
-    if (!await OfflineService().checkConnection()) {
-      OfflineService().showOfflineSnackBar(context);
-      return;
-    }
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final professionController = TextEditingController();
-    final dateController = TextEditingController();
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-
-    if (_resumes.isNotEmpty) {
-      professionController.text = _resumes[0]['profession'] ?? '';
-      dateController.text = _resumes[0]['date'] ?? '';
-      nameController.text = _resumes[0]['name'] ?? '';
-      emailController.text = _resumes[0]['email'] ?? '';
-    }
-
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context).translate('updateResume')),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: professionController,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(
-                      context,
-                    ).translate('profession'),
-                  ),
-                ),
-                TextField(
-                  controller: dateController,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context).translate('date'),
-                  ),
-                ),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context).translate('name'),
-                  ),
-                ),
-                TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context).translate('email'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context).translate('cancel')),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'profession': professionController.text,
-                  'date': dateController.text,
-                  'name': nameController.text,
-                  'email': emailController.text,
-                });
-              },
-              child: Text(AppLocalizations.of(context).translate('save')),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('resumes')
-            .doc(user.uid)
-            .set(result);
-        await OfflineService().saveResumeOffline(result);
+  Future<void> _pickImage() async {
+    try {
+      final stream = await html.window.navigator.mediaDevices?.getUserMedia({
+        'video': true,
+      });
+      if (stream == null) {
         if (mounted) {
-          setState(() {
-            _resumes = [result];
-          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                AppLocalizations.of(context).translate('resumeUpdated'),
+                AppLocalizations.of(context).translate('cameraError'),
               ),
             ),
           );
         }
-      } catch (e) {
-        print('Error updating resume: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error updating resume: $e')));
-        }
+        return;
       }
-    }
-  }
 
-  Future<void> _signOut() async {
-    if (!await OfflineService().checkConnection()) {
-      OfflineService().showOfflineSnackBar(context);
-      return;
-    }
+      final videoElement =
+          html.VideoElement()
+            ..autoplay = true
+            ..srcObject = stream;
 
-    try {
-      await FirebaseAuth.instance.signOut();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+      await videoElement.play();
+
+      await showDialog(
+        context: context,
+        builder:
+            (dialogCtx) => AlertDialog(
+              title: Text(AppLocalizations.of(context).translate('takePhoto')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(AppLocalizations.of(context).translate('cameraActive')),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final canvas = html.CanvasElement(
+                        width: videoElement.videoWidth,
+                        height: videoElement.videoHeight,
+                      );
+                      final ctx = canvas.context2D;
+                      ctx.drawImage(videoElement, 0, 0);
+
+                      final base64Image = canvas.toDataUrl('image/png');
+                      await _saveAvatar(base64Image);
+
+                      setState(() {
+                        _avatarBase64 = base64Image;
+                        _isVerified = true;
+                      });
+
+                      stream.getTracks().forEach((track) => track.stop());
+                      Navigator.of(dialogCtx, rootNavigator: true).pop();
+                    },
+                    child: Text(
+                      AppLocalizations.of(context).translate('capture'),
+                    ),
+                    style: _buttonStyle(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    stream.getTracks().forEach((track) => track.stop());
+                    Navigator.of(dialogCtx, rootNavigator: true).pop();
+                  },
+                  child: Text(AppLocalizations.of(context).translate('cancel')),
+                ),
+              ],
+            ),
+      );
     } catch (e) {
-      print('Error signing out: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error signing out: $e')));
-      }
-    }
-  }
-
-  Future<void> _deleteJob(String jobId) async {
-    if (!await OfflineService().checkConnection()) {
-      await OfflineService().saveJobOffline({'id': jobId}, 'delete');
+      print("Error accessing camera: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).translate('jobDeletionSavedOffline'),
+              '${AppLocalizations.of(context).translate('cameraError')}: $e',
             ),
           ),
         );
       }
-      return;
     }
+  }
 
-    try {
-      await FirebaseFirestore.instance.collection('jobs').doc(jobId).delete();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).translate('jobDeleted')),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error deleting job: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error deleting job: $e')));
-      }
-    }
+  Future<void> _deleteAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('avatar');
+    setState(() {
+      _avatarBase64 = null;
+      _isVerified = false;
+    });
+  }
+
+  ButtonStyle _buttonStyle() {
+    return ElevatedButton.styleFrom(
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    final isOffline = !OfflineService().isOnline;
-
     return withOrientationSupport(
       context: context,
       portrait: _buildPortraitLayout(context, localizations),
@@ -365,384 +357,150 @@ class _ProfilePageState extends State<ProfilePage> {
     BuildContext context,
     AppLocalizations localizations,
   ) {
-    final isOffline = !OfflineService().isOnline;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.translate('profile')),
         centerTitle: true,
-        backgroundColor: isOffline ? Colors.red : null,
-        actions:
-            isOffline
-                ? [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: Center(
-                      child: Text(
-                        localizations.translate('connectToInternet'),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+        flexibleSpace:
+            _isOnline
+                ? null
+                : Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      localizations.translate('connectToInternet'),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ]
-                : null,
+                ),
+      ),
+      endDrawer: Drawer(
+        child: ListView(
+          children: [
+            ListTile(
+              title: Text(localizations.translate('aboutTheApp')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AboutPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(localizations.translate('settings')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(localizations.translate('help')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HelpPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : isOffline && _resumes.isEmpty && _userRole == null
-              ? Center(
-                child: Text(localizations.translate('connectToInternet')),
-              )
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage:
-                                _avatarBase64 != null
-                                    ? MemoryImage(
-                                      base64Decode(
-                                        _avatarBase64!.split(',').last,
-                                      ),
-                                    )
-                                    : const AssetImage(_placeholderAvatar)
-                                        as ImageProvider,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
+              : _userRole == null || _userRole!.isEmpty
+              ? _buildNoRoleContent(context, localizations)
+              : _userRole == 'jobSeeker'
+              ? _buildJobSeekerContent(context, localizations)
+              : _buildEmployerContent(context, localizations),
+      floatingActionButton:
+          _userRole == 'employer'
+              ? FloatingActionButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateJobScreen(),
+                    ),
+                  );
+                  if (result != null && result is Map<String, dynamic>) {
+                    final jobData = {
+                      ...result,
+                      'employerId': FirebaseAuth.instance.currentUser?.uid,
+                      'createdAt': DateTime.now().toIso8601String(),
+                    };
+                    try {
+                      if (_isOnline) {
+                        final docRef = await FirebaseFirestore.instance
+                            .collection('jobs')
+                            .add(jobData);
+                        setState(() {
+                          _jobs.add({...jobData, 'id': docRef.id});
+                        });
+                        await OfflineService().saveJobsListOffline(_jobs);
+                      } else {
+                        await OfflineService().saveJobOffline(
+                          jobData,
+                          'create',
+                        );
+                        setState(() {
+                          _jobs.add({
+                            ...jobData,
+                            'id': 'offline_${_jobs.length}',
+                          });
+                          _hasPendingRequests = true;
+                        });
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                localizations.translate('offlineModeWarning'),
                               ),
-                              onPressed: _uploadAvatar,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        _name,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        _email,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Center(
-                      child:
-                          _isVerified
-                              ? const Icon(
-                                Icons.verified,
-                                color: Colors.green,
-                                size: 24,
-                              )
-                              : Text(localizations.translate('notVerified')),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButton<String>(
-                      value: _status,
-                      onChanged:
-                          (newStatus) => _updateStatus(newStatus ?? _status),
-                      items:
-                          _statuses
-                              .map(
-                                (status) => DropdownMenuItem(
-                                  value: status,
-                                  child: Text(localizations.translate(status)),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.translate('resume'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    _resumes.isEmpty
-                        ? Text(localizations.translate('noResume'))
-                        : Column(
-                          children:
-                              _resumes.map((resume) {
-                                return Card(
-                                  child: ListTile(
-                                    title: Text(
-                                      resume['profession'] ?? 'No Profession',
-                                    ),
-                                    subtitle: Text(
-                                      '${resume['date']}\n${resume['name']}\n${resume['email']}',
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.edit),
-                                      onPressed: _updateResume,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                    const SizedBox(height: 16),
-                    if (_resumes.isEmpty)
-                      ElevatedButton(
-                        onPressed: _updateResume,
-                        child: Text(localizations.translate('addResume')),
-                      ),
-                    const SizedBox(height: 16),
-                    if (_userRole == 'employer') ...[
-                      Text(
-                        localizations.translate('myVacancies'),
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      isOffline
-                          ? Center(
-                            child: Text(
-                              localizations.translate('connectToInternet'),
-                            ),
-                          )
-                          : StreamBuilder<QuerySnapshot>(
-                            stream:
-                                FirebaseFirestore.instance
-                                    .collection('jobs')
-                                    .where(
-                                      'employerId',
-                                      isEqualTo:
-                                          FirebaseAuth
-                                              .instance
-                                              .currentUser
-                                              ?.uid,
-                                    )
-                                    .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              final jobs = snapshot.data?.docs ?? [];
-                              if (jobs.isEmpty) {
-                                return Text(
-                                  localizations.translate('noVacancies'),
-                                );
-                              }
-                              return Column(
-                                children:
-                                    jobs.map((job) {
-                                      final jobData =
-                                          job.data() as Map<String, dynamic>;
-                                      return Card(
-                                        child: ListTile(
-                                          title: Text(jobData['title'] ?? ''),
-                                          subtitle: Text(
-                                            '${jobData['company'] ?? ''}\n${jobData['city'] ?? ''}',
-                                          ),
-                                          trailing: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(Icons.edit),
-                                                onPressed: () async {
-                                                  if (!await OfflineService()
-                                                      .checkConnection()) {
-                                                    OfflineService()
-                                                        .showOfflineSnackBar(
-                                                          context,
-                                                        );
-                                                    return;
-                                                  }
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder:
-                                                          (context) =>
-                                                              EditJobScreen(
-                                                                jobId: job.id,
-                                                                jobData:
-                                                                    jobData,
-                                                              ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.delete),
-                                                onPressed:
-                                                    () => _deleteJob(job.id),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                              );
-                            },
-                          ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () async {
-                          if (!await OfflineService().checkConnection()) {
-                            OfflineService().showOfflineSnackBar(context);
-                            return;
-                          }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateJobScreen(),
                             ),
                           );
-                        },
-                        child: Text(localizations.translate('createJob')),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    Text(
-                      localizations.translate('applications'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    isOffline
-                        ? Center(
-                          child: Text(
-                            localizations.translate('connectToInternet'),
-                          ),
-                        )
-                        : StreamBuilder<QuerySnapshot>(
-                          stream:
-                              FirebaseFirestore.instance
-                                  .collection('applications')
-                                  .where(
-                                    'userId',
-                                    isEqualTo:
-                                        FirebaseAuth.instance.currentUser?.uid,
-                                  )
-                                  .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            final applications = snapshot.data?.docs ?? [];
-                            if (applications.isEmpty) {
-                              return Text(
-                                localizations.translate('noApplications'),
-                              );
-                            }
-                            return Column(
-                              children:
-                                  applications.map((app) {
-                                    final appData =
-                                        app.data() as Map<String, dynamic>;
-                                    return Card(
-                                      child: ListTile(
-                                        title: Text(appData['jobTitle'] ?? ''),
-                                        subtitle: Text(
-                                          '${appData['status'] ?? 'Pending'}\n${appData['appliedAt']?.toDate() ?? ''}',
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                            );
-                          },
-                        ),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.translate('settings'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.settings),
-                      title: Text(localizations.translate('settings')),
-                      onTap: () async {
-                        if (!await OfflineService().checkConnection()) {
-                          OfflineService().showOfflineSnackBar(context);
-                          return;
                         }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsPage(),
+                      }
+                    } catch (e) {
+                      print('Error creating job: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              localizations.translate('offlineModeWarning'),
+                            ),
                           ),
                         );
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.info),
-                      title: Text(localizations.translate('about')),
-                      onTap: () async {
-                        if (!await OfflineService().checkConnection()) {
-                          OfflineService().showOfflineSnackBar(context);
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => AboutPage()),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.help),
-                      title: Text(localizations.translate('help')),
-                      onTap: () async {
-                        if (!await OfflineService().checkConnection()) {
-                          OfflineService().showOfflineSnackBar(context);
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => HelpPage()),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.work),
-                      title: Text(localizations.translate('changeRole')),
-                      onTap: () async {
-                        if (!await OfflineService().checkConnection()) {
-                          OfflineService().showOfflineSnackBar(context);
-                          return;
-                        }
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null) {
-                          showDialog(
-                            context: context,
-                            builder:
-                                (context) =>
-                                    RoleSelectionDialog(userId: user.uid),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _signOut,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                        child: Text(localizations.translate('signOut')),
-                      ),
-                    ),
-                  ],
+                      }
+                    }
+                  }
+                },
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                child: const Icon(Icons.add),
+                tooltip: localizations.translate('createJob'),
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
+              )
+              : null,
     );
   }
 
@@ -750,431 +508,479 @@ class _ProfilePageState extends State<ProfilePage> {
     BuildContext context,
     AppLocalizations localizations,
   ) {
-    final isOffline = !OfflineService().isOnline;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.translate('profile')),
         centerTitle: true,
-        backgroundColor: isOffline ? Colors.red : null,
-        actions:
-            isOffline
-                ? [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: Center(
-                      child: Text(
-                        localizations.translate('connectToInternet'),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+        flexibleSpace:
+            _isOnline
+                ? null
+                : Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      localizations.translate('connectToInternet'),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ]
-                : null,
+                ),
+      ),
+      endDrawer: Drawer(
+        child: ListView(
+          children: [
+            ListTile(
+              title: Text(localizations.translate('aboutTheApp')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AboutPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(localizations.translate('settings')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(localizations.translate('help')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HelpPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : isOffline && _resumes.isEmpty && _userRole == null
-              ? Center(
-                child: Text(localizations.translate('connectToInternet')),
-              )
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 1,
+              : Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Center(
-                            child: Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 50,
-                                  backgroundImage:
-                                      _avatarBase64 != null
-                                          ? MemoryImage(
-                                            base64Decode(
-                                              _avatarBase64!.split(',').last,
-                                            ),
-                                          )
-                                          : const AssetImage(_placeholderAvatar)
-                                              as ImageProvider,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                    ),
-                                    onPressed: _uploadAvatar,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: Text(
-                              _name,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          Center(
-                            child: Text(
-                              _email,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
-                          Center(
+                          ClipOval(
                             child:
-                                _isVerified
-                                    ? const Icon(
-                                      Icons.verified,
-                                      color: Colors.green,
-                                      size: 24,
-                                    )
-                                    : Text(
-                                      localizations.translate('notVerified'),
-                                    ),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButton<String>(
-                            value: _status,
-                            onChanged:
-                                (newStatus) =>
-                                    _updateStatus(newStatus ?? _status),
-                            items:
-                                _statuses
-                                    .map(
-                                      (status) => DropdownMenuItem(
-                                        value: status,
-                                        child: Text(
-                                          localizations.translate(status),
-                                        ),
+                                _avatarBase64 != null
+                                    ? Image.memory(
+                                      base64Decode(
+                                        _avatarBase64!.split(',').last,
                                       ),
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
                                     )
-                                    .toList(),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            localizations.translate('resume'),
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          _resumes.isEmpty
-                              ? Text(localizations.translate('noResume'))
-                              : Column(
-                                children:
-                                    _resumes.map((resume) {
-                                      return Card(
-                                        child: ListTile(
-                                          title: Text(
-                                            resume['profession'] ??
-                                                'No Profession',
-                                          ),
-                                          subtitle: Text(
-                                            '${resume['date']}\n${resume['name']}\n${resume['email']}',
-                                          ),
-                                          trailing: IconButton(
-                                            icon: const Icon(Icons.edit),
-                                            onPressed: _updateResume,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                              ),
-                          const SizedBox(height: 16),
-                          if (_resumes.isEmpty)
-                            ElevatedButton(
-                              onPressed: _updateResume,
-                              child: Text(localizations.translate('addResume')),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_userRole == 'employer') ...[
-                            Text(
-                              localizations.translate('myVacancies'),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            isOffline
-                                ? Center(
-                                  child: Text(
-                                    localizations.translate(
-                                      'connectToInternet',
+                                    : Image.asset(
+                                      _placeholderAvatar,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
                                     ),
-                                  ),
-                                )
-                                : StreamBuilder<QuerySnapshot>(
-                                  stream:
-                                      FirebaseFirestore.instance
-                                          .collection('jobs')
-                                          .where(
-                                            'employerId',
-                                            isEqualTo:
-                                                FirebaseAuth
-                                                    .instance
-                                                    .currentUser
-                                                    ?.uid,
-                                          )
-                                          .snapshots(),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Center(
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    }
-                                    final jobs = snapshot.data?.docs ?? [];
-                                    if (jobs.isEmpty) {
-                                      return Text(
-                                        localizations.translate('noVacancies'),
-                                      );
-                                    }
-                                    return Column(
-                                      children:
-                                          jobs.map((job) {
-                                            final jobData =
-                                                job.data()
-                                                    as Map<String, dynamic>;
-                                            return Card(
-                                              child: ListTile(
-                                                title: Text(
-                                                  jobData['title'] ?? '',
-                                                ),
-                                                subtitle: Text(
-                                                  '${jobData['company'] ?? ''}\n${jobData['city'] ?? ''}',
-                                                ),
-                                                trailing: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                        Icons.edit,
-                                                      ),
-                                                      onPressed: () async {
-                                                        if (!await OfflineService()
-                                                            .checkConnection()) {
-                                                          OfflineService()
-                                                              .showOfflineSnackBar(
-                                                                context,
-                                                              );
-                                                          return;
-                                                        }
-                                                        Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  context,
-                                                                ) => EditJobScreen(
-                                                                  jobId: job.id,
-                                                                  jobData:
-                                                                      jobData,
-                                                                ),
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                        Icons.delete,
-                                                      ),
-                                                      onPressed:
-                                                          () => _deleteJob(
-                                                            job.id,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                    );
-                                  },
-                                ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () async {
-                                if (!await OfflineService().checkConnection()) {
-                                  OfflineService().showOfflineSnackBar(context);
-                                  return;
-                                }
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => const CreateJobScreen(),
-                                  ),
-                                );
-                              },
-                              child: Text(localizations.translate('createJob')),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          Text(
-                            localizations.translate('applications'),
-                            style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
-                          isOffline
-                              ? Center(
-                                child: Text(
-                                  localizations.translate('connectToInternet'),
-                                ),
-                              )
-                              : StreamBuilder<QuerySnapshot>(
-                                stream:
-                                    FirebaseFirestore.instance
-                                        .collection('applications')
-                                        .where(
-                                          'userId',
-                                          isEqualTo:
-                                              FirebaseAuth
-                                                  .instance
-                                                  .currentUser
-                                                  ?.uid,
-                                        )
-                                        .snapshots(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  }
-                                  final applications =
-                                      snapshot.data?.docs ?? [];
-                                  if (applications.isEmpty) {
-                                    return Text(
-                                      localizations.translate('noApplications'),
-                                    );
-                                  }
-                                  return Column(
-                                    children:
-                                        applications.map((app) {
-                                          final appData =
-                                              app.data()
-                                                  as Map<String, dynamic>;
-                                          return Card(
-                                            child: ListTile(
-                                              title: Text(
-                                                appData['jobTitle'] ?? '',
-                                              ),
-                                              subtitle: Text(
-                                                '${appData['status'] ?? 'Pending'}\n${appData['appliedAt']?.toDate() ?? ''}',
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                  );
-                                },
-                              ),
-                          const SizedBox(height: 16),
                           Text(
-                            localizations.translate('settings'),
-                            style: Theme.of(context).textTheme.titleMedium,
+                            _name,
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          ListTile(
-                            leading: const Icon(Icons.settings),
-                            title: Text(localizations.translate('settings')),
-                            onTap: () async {
-                              if (!await OfflineService().checkConnection()) {
-                                OfflineService().showOfflineSnackBar(context);
-                                return;
-                              }
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.info),
-                            title: Text(localizations.translate('about')),
-                            onTap: () async {
-                              if (!await OfflineService().checkConnection()) {
-                                OfflineService().showOfflineSnackBar(context);
-                                return;
-                              }
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AboutPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.help),
-                            title: Text(localizations.translate('help')),
-                            onTap: () async {
-                              if (!await OfflineService().checkConnection()) {
-                                OfflineService().showOfflineSnackBar(context);
-                                return;
-                              }
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => HelpPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.work),
-                            title: Text(localizations.translate('changeRole')),
-                            onTap: () async {
-                              if (!await OfflineService().checkConnection()) {
-                                OfflineService().showOfflineSnackBar(context);
-                                return;
-                              }
-                              final user = FirebaseAuth.instance.currentUser;
-                              if (user != null) {
-                                showDialog(
-                                  context: context,
-                                  builder:
-                                      (context) =>
-                                          RoleSelectionDialog(userId: user.uid),
-                                );
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: ElevatedButton(
-                              onPressed: _signOut,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
-                              child: Text(localizations.translate('signOut')),
-                            ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _email,
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child:
+                        _userRole == null || _userRole!.isEmpty
+                            ? _buildNoRoleContent(context, localizations)
+                            : _userRole == 'jobSeeker'
+                            ? _buildJobSeekerContent(context, localizations)
+                            : _buildEmployerContent(context, localizations),
+                  ),
+                ],
               ),
+      floatingActionButton:
+          _userRole == 'employer'
+              ? FloatingActionButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateJobScreen(),
+                    ),
+                  );
+                  if (result != null && result is Map<String, dynamic>) {
+                    final jobData = {
+                      ...result,
+                      'employerId': FirebaseAuth.instance.currentUser?.uid,
+                      'createdAt': DateTime.now().toIso8601String(),
+                    };
+                    try {
+                      if (_isOnline) {
+                        final docRef = await FirebaseFirestore.instance
+                            .collection('jobs')
+                            .add(jobData);
+                        setState(() {
+                          _jobs.add({...jobData, 'id': docRef.id});
+                        });
+                        await OfflineService().saveJobsListOffline(_jobs);
+                      } else {
+                        await OfflineService().saveJobOffline(
+                          jobData,
+                          'create',
+                        );
+                        setState(() {
+                          _jobs.add({
+                            ...jobData,
+                            'id': 'offline_${_jobs.length}',
+                          });
+                          _hasPendingRequests = true;
+                        });
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                localizations.translate('offlineModeWarning'),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      print('Error creating job: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              localizations.translate('offlineModeWarning'),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                child: const Icon(Icons.add),
+                tooltip: localizations.translate('createJob'),
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              )
+              : null,
+    );
+  }
+
+  Widget _buildNoRoleContent(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            localizations.translate('pleaseSelectRole'),
+            style: Theme.of(context).textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                if (_isOnline) {
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (dialogContext) =>
+                            RoleSelectionDialog(userId: user.uid),
+                  );
+                  await _loadUserData();
+                } else {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('userRole', 'jobSeeker');
+                  setState(() {
+                    _userRole = 'jobSeeker';
+                    _hasPendingRequests = true;
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          localizations.translate('offlineModeWarning'),
+                        ),
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: _buttonStyle(),
+            child: Text(localizations.translate('selectRole')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobSeekerContent(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ListView(
+        children: [
+          Center(
+            child: Column(
+              children: [
+                ClipOval(
+                  child:
+                      _avatarBase64 != null
+                          ? Image.memory(
+                            base64Decode(_avatarBase64!.split(',').last),
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          )
+                          : Image.asset(
+                            _placeholderAvatar,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _isVerified ? null : _pickImage,
+                  style: _buttonStyle(),
+                  child: Text(
+                    _isVerified
+                        ? localizations.translate('verified')
+                        : localizations.translate('verifyYourself'),
+                  ),
+                ),
+                if (_isVerified)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: ElevatedButton(
+                      onPressed: _deleteAvatar,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(localizations.translate('deletePhoto')),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_name, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text(
+                  _email,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                DropdownButton<String>(
+                  value: _status,
+                  icon: const Icon(Icons.arrow_drop_down),
+                  isExpanded: true,
+                  items:
+                      _statuses.map((String statusKey) {
+                        return DropdownMenuItem<String>(
+                          value: statusKey,
+                          child: Text(localizations.translate(statusKey)),
+                        );
+                      }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _status = newValue;
+                      });
+                      _saveStatus(newValue);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmployerContent(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ListView(
+        children: [
+          Center(
+            child: Column(
+              children: [
+                ClipOval(
+                  child:
+                      _avatarBase64 != null
+                          ? Image.memory(
+                            base64Decode(_avatarBase64!.split(',').last),
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          )
+                          : Image.asset(
+                            _placeholderAvatar,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
+                ),
+                const SizedBox(height: 10),
+                Text(_name, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text(
+                  _email,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            localizations.translate('yourJobs'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          _jobs.isEmpty
+              ? Center(
+                child: Text(
+                  _isOnline
+                      ? localizations.translate('noJobsCreated')
+                      : localizations.translate('connectToInternet'),
+                ),
+              )
+              : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _jobs.length,
+                itemBuilder: (context, index) {
+                  final job = _jobs[index];
+                  final jobId = job['id'] ?? 'offline_${index}';
+                  return _buildJobCard(context, job, jobId, localizations);
+                },
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobCard(
+    BuildContext context,
+    Map<String, dynamic> job,
+    String jobId,
+    AppLocalizations localizations,
+  ) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          job['title'] ?? 'Untitled',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${localizations.translate('category')}: ${job['category']}'),
+            Text('${localizations.translate('city')}: ${job['city']}'),
+            Text('${localizations.translate('salary')}: ${job['salary']}'),
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            Icons.edit,
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+          onPressed: () {
+            if (_isOnline) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => EditJobScreen(jobId: jobId, jobData: job),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(localizations.translate('offlineModeWarning')),
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }

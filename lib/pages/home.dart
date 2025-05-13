@@ -141,41 +141,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text(localizations.translate('jobSeekerDashboard')),
                 centerTitle: true,
                 backgroundColor: isOffline ? Colors.red : null,
-                actions: [
-                  if (isOffline)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: Center(
-                        child: Text(
-                          localizations.translate('connectToInternet'),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
+                flexibleSpace:
+                    isOffline
+                        ? Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.withOpacity(0.3),
+                                Colors.red.withOpacity(0.1),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
                           ),
+                          child: Center(
+                            child: Text(
+                              localizations.translate('connectToInternet'),
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                        : null,
+                actions: [
+                  if (!isOffline)
+                    TextButton(
+                      onPressed: () async {
+                        if (!await OfflineService().checkConnection()) {
+                          OfflineService().showOfflineSnackBar(context);
+                          return;
+                        }
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        localizations.translate('login'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                  TextButton(
-                    onPressed: () async {
-                      if (!await OfflineService().checkConnection()) {
-                        OfflineService().showOfflineSnackBar(context);
-                        return;
-                      }
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginPage(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      localizations.translate('login'),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                 ],
               )
               : null,
@@ -258,70 +270,87 @@ class HomeContent extends StatelessWidget {
                 title: Text(localizations.translate('jobSeekerDashboard')),
                 centerTitle: true,
                 backgroundColor: isOffline ? Colors.red : null,
-                actions: [
-                  if (isOffline)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: Center(
-                        child: Text(
-                          localizations.translate('connectToInternet'),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
+                flexibleSpace:
+                    isOffline
+                        ? Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.withOpacity(0.3),
+                                Colors.red.withOpacity(0.1),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
                           ),
-                        ),
-                      ),
+                          child: Center(
+                            child: Text(
+                              localizations.translate('connectToInternet'),
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                        : null,
+                actions: [
+                  if (!isOffline)
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () async {
+                        if (!await OfflineService().checkConnection()) {
+                          OfflineService().showOfflineSnackBar(context);
+                          return;
+                        }
+                        if (isGuest) {
+                          homeState?._showLoginPrompt();
+                        } else {
+                          homeState?._onItemTapped(1);
+                        }
+                      },
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () async {
-                      if (!await OfflineService().checkConnection()) {
-                        OfflineService().showOfflineSnackBar(context);
-                        return;
-                      }
-                      if (isGuest) {
-                        homeState?._showLoginPrompt();
-                      } else {
-                        homeState?._onItemTapped(1);
-                      }
-                    },
-                  ),
                 ],
               ),
-      body: isOffline
-          ? Center(
-              child: Text(localizations.translate('connectToInternet')),
-            )
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    Text(
-                      localizations.translate('recentJobs'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: _buildRecentJobs(context, localizations, isGuest),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      localizations.translate('jobCategories'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    _buildCategoryGrid(
-                      context,
-                      categories,
-                      crossAxisCount: 2,
-                      isGuest: isGuest,
-                    ),
-                  ],
+      body:
+          isOffline
+              ? Center(
+                child: Text(localizations.translate('connectToInternet')),
+              )
+              : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      Text(
+                        localizations.translate('recentJobs'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      SizedBox(
+                        height: 200,
+                        child: _buildRecentJobs(
+                          context,
+                          localizations,
+                          isGuest,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        localizations.translate('jobCategories'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      _buildCategoryGrid(
+                        context,
+                        categories,
+                        crossAxisCount: 2,
+                        isGuest: isGuest,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
@@ -342,85 +371,102 @@ class HomeContent extends StatelessWidget {
                 title: Text(localizations.translate('jobSeekerDashboard')),
                 centerTitle: true,
                 backgroundColor: isOffline ? Colors.red : null,
-                actions: [
-                  if (isOffline)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: Center(
-                        child: Text(
-                          localizations.translate('connectToInternet'),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
+                flexibleSpace:
+                    isOffline
+                        ? Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.withOpacity(0.3),
+                                Colors.red.withOpacity(0.1),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
                           ),
-                        ),
-                      ),
+                          child: Center(
+                            child: Text(
+                              localizations.translate('connectToInternet'),
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                        : null,
+                actions: [
+                  if (!isOffline)
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () async {
+                        if (!await OfflineService().checkConnection()) {
+                          OfflineService().showOfflineSnackBar(context);
+                          return;
+                        }
+                        if (isGuest) {
+                          homeState?._showLoginPrompt();
+                        } else {
+                          homeState?._onItemTapped(1);
+                        }
+                      },
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () async {
-                      if (!await OfflineService().checkConnection()) {
-                        OfflineService().showOfflineSnackBar(context);
-                        return;
-                      }
-                      if (isGuest) {
-                        homeState?._showLoginPrompt();
-                      } else {
-                        homeState?._onItemTapped(1);
-                      }
-                    },
-                  ),
                 ],
               ),
-      body: isOffline
-          ? Center(
-              child: Text(localizations.translate('connectToInternet')),
-            )
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.translate('recentJobs'),
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          SizedBox(
-                            height: 200,
-                            child: _buildRecentJobs(context, localizations, isGuest),
-                          ),
-                        ],
+      body:
+          isOffline
+              ? Center(
+                child: Text(localizations.translate('connectToInternet')),
+              )
+              : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localizations.translate('recentJobs'),
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            SizedBox(
+                              height: 200,
+                              child: _buildRecentJobs(
+                                context,
+                                localizations,
+                                isGuest,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.translate('jobCategories'),
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          _buildCategoryGrid(
-                            context,
-                            categories,
-                            crossAxisCount: 3,
-                            isGuest: isGuest,
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localizations.translate('jobCategories'),
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            _buildCategoryGrid(
+                              context,
+                              categories,
+                              crossAxisCount: 3,
+                              isGuest: isGuest,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
@@ -532,13 +578,15 @@ class HomeContent extends StatelessWidget {
             ),
           );
         }
-        // Сохраняем вакансии оффлайн
-        final jobList = jobs
-            .map((doc) => {
-                  ...doc.data() as Map<String, dynamic>,
-                  'id': doc.id,
-                })
-            .toList();
+        final jobList =
+            jobs
+                .map(
+                  (doc) => {
+                    ...doc.data() as Map<String, dynamic>,
+                    'id': doc.id,
+                  },
+                )
+                .toList();
         OfflineService().saveJobsListOffline(jobList);
 
         return ListView.builder(
@@ -566,7 +614,9 @@ class HomeContent extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => JobDetailsScreen(job: {...job, 'id': jobId}),
+                    builder:
+                        (context) =>
+                            JobDetailsScreen(job: {...job, 'id': jobId}),
                   ),
                 );
               },
@@ -743,66 +793,83 @@ class CategoryJobsScreen extends StatelessWidget {
         title: Text('${localizations.translate('jobCategories')}: $category'),
         centerTitle: true,
         backgroundColor: isOffline ? Colors.red : null,
-        actions: isOffline
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+        flexibleSpace:
+            isOffline
+                ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                   child: Center(
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
+                      style: const TextStyle(
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-              ]
-            : null,
+                )
+                : null,
       ),
-      body: isOffline
-          ? Center(
-              child: Text(localizations.translate('connectToInternet')),
-            )
-          : StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('jobs')
-                      .where('category', isEqualTo: categoryKey)
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final jobs = snapshot.data?.docs ?? [];
-                if (jobs.isEmpty) {
-                  return Center(
-                    child: Text(localizations.translate('noJobsAvailable')),
-                  );
-                }
-                // Сохраняем вакансии оффлайн
-                final jobList = jobs
-                    .map((doc) => {
-                          ...doc.data() as Map<String, dynamic>,
-                          'id': doc.id,
-                        })
-                    .toList();
-                OfflineService().saveJobsListOffline(jobList);
+      body:
+          isOffline
+              ? Center(
+                child: Text(localizations.translate('connectToInternet')),
+              )
+              : StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('jobs')
+                        .where('category', isEqualTo: categoryKey)
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  final jobs = snapshot.data?.docs ?? [];
+                  if (jobs.isEmpty) {
+                    return Center(
+                      child: Text(localizations.translate('noJobsAvailable')),
+                    );
+                  }
+                  final jobList =
+                      jobs
+                          .map(
+                            (doc) => {
+                              ...doc.data() as Map<String, dynamic>,
+                              'id': doc.id,
+                            },
+                          )
+                          .toList();
+                  OfflineService().saveJobsListOffline(jobList);
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: jobs.length,
-                  itemBuilder: (context, index) {
-                    final job = jobs[index].data() as Map<String, dynamic>;
-                    final jobId = jobs[index].id;
-                    return _buildJobCard(context, job, jobId, localizations, isGuest);
-                  },
-                );
-              },
-            ),
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: jobs.length,
+                    itemBuilder: (context, index) {
+                      final job = jobs[index].data() as Map<String, dynamic>;
+                      final jobId = jobs[index].id;
+                      return _buildJobCard(
+                        context,
+                        job,
+                        jobId,
+                        localizations,
+                        isGuest,
+                      );
+                    },
+                  );
+                },
+              ),
     );
   }
 
@@ -819,72 +886,90 @@ class CategoryJobsScreen extends StatelessWidget {
         title: Text('${localizations.translate('jobCategories')}: $category'),
         centerTitle: true,
         backgroundColor: isOffline ? Colors.red : null,
-        actions: isOffline
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+        flexibleSpace:
+            isOffline
+                ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                   child: Center(
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
+                      style: const TextStyle(
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-              ]
-            : null,
+                )
+                : null,
       ),
-      body: isOffline
-          ? Center(
-              child: Text(localizations.translate('connectToInternet')),
-            )
-          : StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('jobs')
-                      .where('category', isEqualTo: categoryKey)
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final jobs = snapshot.data?.docs ?? [];
-                if (jobs.isEmpty) {
-                  return Center(
-                    child: Text(localizations.translate('noJobsAvailable')),
-                  );
-                }
-                // Сохраняем вакансии оффлайн
-                final jobList = jobs
-                    .map((doc) => {
-                          ...doc.data() as Map<String, dynamic>,
-                          'id': doc.id,
-                        })
-                    .toList();
-                OfflineService().saveJobsListOffline(jobList);
+      body:
+          isOffline
+              ? Center(
+                child: Text(localizations.translate('connectToInternet')),
+              )
+              : StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('jobs')
+                        .where('category', isEqualTo: categoryKey)
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  final jobs = snapshot.data?.docs ?? [];
+                  if (jobs.isEmpty) {
+                    return Center(
+                      child: Text(localizations.translate('noJobsAvailable')),
+                    );
+                  }
+                  final jobList =
+                      jobs
+                          .map(
+                            (doc) => {
+                              ...doc.data() as Map<String, dynamic>,
+                              'id': doc.id,
+                            },
+                          )
+                          .toList();
+                  OfflineService().saveJobsListOffline(jobList);
 
-                return GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 3 / 2,
-                  ),
-                  itemCount: jobs.length,
-                  itemBuilder: (context, index) {
-                    final job = jobs[index].data() as Map<String, dynamic>;
-                    final jobId = jobs[index].id;
-                    return _buildJobCard(context, job, jobId, localizations, isGuest);
-                  },
-                );
-              },
-            ),
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(12),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 3 / 2,
+                        ),
+                    itemCount: jobs.length,
+                    itemBuilder: (context, index) {
+                      final job = jobs[index].data() as Map<String, dynamic>;
+                      final jobId = jobs[index].id;
+                      return _buildJobCard(
+                        context,
+                        job,
+                        jobId,
+                        localizations,
+                        isGuest,
+                      );
+                    },
+                  );
+                },
+              ),
     );
   }
 
@@ -1004,22 +1089,30 @@ class JobDetailsScreen extends StatelessWidget {
         title: Text(job['title'] ?? ''),
         centerTitle: true,
         backgroundColor: isOffline ? Colors.red : null,
-        actions: isOffline
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+        flexibleSpace:
+            isOffline
+                ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                   child: Center(
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
+                      style: const TextStyle(
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-              ]
-            : null,
+                )
+                : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -1130,22 +1223,30 @@ class JobDetailsScreen extends StatelessWidget {
         title: Text(job['title'] ?? ''),
         centerTitle: true,
         backgroundColor: isOffline ? Colors.red : null,
-        actions: isOffline
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+        flexibleSpace:
+            isOffline
+                ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                   child: Center(
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
+                      style: const TextStyle(
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ),
-              ]
-            : null,
+                )
+                : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

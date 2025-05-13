@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../localizations.dart';
+import 'offline_service.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -51,6 +52,7 @@ class _SearchPageState extends State<SearchPage>
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final isOffline = !OfflineService().isOnline;
     final categories = [
       {'name': localizations.translate('categoryIT'), 'icon': Icons.computer},
       {
@@ -72,7 +74,32 @@ class _SearchPageState extends State<SearchPage>
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.translate('search')),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        centerTitle: true,
+        backgroundColor: isOffline ? Colors.red : null,
+        flexibleSpace:
+            isOffline
+                ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.withOpacity(0.3),
+                        Colors.red.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      localizations.translate('connectToInternet'),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                )
+                : null,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
