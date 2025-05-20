@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconly/iconly.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../localizations.dart';
 import 'home.dart';
 import 'register_page.dart';
@@ -19,7 +18,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _pinController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
@@ -47,7 +45,6 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _pinController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -68,46 +65,9 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
 
     final localizations = AppLocalizations.of(context);
-    if (_formKey.currentState!.validate() && (_emailError == null || _pinController.text.isNotEmpty)) {
+    if (_formKey.currentState!.validate() && _emailError == null) {
       setState(() => _isLoading = true);
-      final prefs = await SharedPreferences.getInstance();
 
-      // Try PIN login first
-      if (_pinController.text.isNotEmpty) {
-        final storedPin = prefs.getString('pin');
-        final offlineUserId = prefs.getString('offline_user_id');
-        if (storedPin != null && storedPin == _pinController.text && offlineUserId != null) {
-          print('PIN login successful for user ID: $offlineUserId');
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomeScreen(userName: prefs.getString('name') ?? 'User'),
-              ),
-            );
-          }
-          setState(() => _isLoading = false);
-          return;
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  storedPin == null || storedPin != _pinController.text
-                      ? localizations.translate('invalidPin')
-                      : localizations.translate('noUserForPin'),
-                  style: TextStyle(color: Colors.white),
-                ),
-                backgroundColor: Colors.redAccent,
-              ),
-            );
-          }
-          setState(() => _isLoading = false);
-          return;
-        }
-      }
-
-      // Proceed with Firebase login if PIN is empty and online
       if (!_isOnline) {
         if (mounted) {
           OfflineService().showOfflineSnackBar(context);
@@ -118,23 +78,24 @@ class _LoginPageState extends State<LoginPage> {
 
       try {
         print('Attempting to sign in with email: ${_emailController.text}');
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
         print('User signed in with UID: ${userCredential.user!.uid}');
-
-        // Store user ID and name for offline PIN login
-        await prefs.setString('offline_user_id', userCredential.user!.uid);
-        await prefs.setString('name', userCredential.user?.displayName ?? userCredential.user?.email ?? '');
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => HomeScreen(
-                userName: userCredential.user?.displayName ?? userCredential.user?.email ?? '',
-              ),
+              builder:
+                  (context) => HomeScreen(
+                    userName:
+                        userCredential.user?.displayName ??
+                        userCredential.user?.email ??
+                        '',
+                  ),
             ),
           );
         }
@@ -289,7 +250,9 @@ class _LoginPageState extends State<LoginPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Color(0xFF2A9D8F),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             minimumSize: Size(double.infinity, 48),
           ),
@@ -298,7 +261,9 @@ class _LoginPageState extends State<LoginPage> {
           style: OutlinedButton.styleFrom(
             padding: EdgeInsets.symmetric(vertical: 14),
             side: BorderSide(color: Color(0xFF2A9D8F)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
@@ -329,7 +294,9 @@ class _LoginPageState extends State<LoginPage> {
         ),
         cardTheme: CardTheme(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: EdgeInsets.symmetric(vertical: 8),
         ),
       ),
@@ -353,31 +320,37 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
           ),
           elevation: 4,
-          flexibleSpace: !_isOnline
-              ? Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+          flexibleSpace:
+              !_isOnline
+                  ? Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.red.withOpacity(0.3),
+                          Colors.red.withOpacity(0.1),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(16),
+                      ),
                     ),
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-                  ),
-                  child: Center(
-                    child: FadeInDown(
-                      duration: Duration(milliseconds: 700),
-                      child: Text(
-                        localizations.translate('connectToInternet'),
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    child: Center(
+                      child: FadeInDown(
+                        duration: Duration(milliseconds: 700),
+                        child: Text(
+                          localizations.translate('connectToInternet'),
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )
-              : null,
+                  )
+                  : null,
         ),
         body: Center(
           child: SingleChildScrollView(
@@ -424,7 +397,10 @@ class _LoginPageState extends State<LoginPage> {
                                     height: 8,
                                     width: _currentPage == index ? 24 : 8,
                                     decoration: BoxDecoration(
-                                      color: _currentPage == index ? Color(0xFF2A9D8F) : Color(0xFF6B7280),
+                                      color:
+                                          _currentPage == index
+                                              ? Color(0xFF2A9D8F)
+                                              : Color(0xFF6B7280),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
@@ -476,10 +452,13 @@ class _LoginPageState extends State<LoginPage> {
                                 hintStyle: TextStyle(color: Color(0xFF6B7280)),
                               ),
                               onChanged: _validateEmail,
-                              validator: (value) =>
-                                  value!.isEmpty && _pinController.text.isEmpty
-                                      ? localizations.translate('enterEmailOrPin')
-                                      : null,
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? localizations.translate(
+                                            'enterEmail',
+                                          )
+                                          : null,
                             ),
                           ),
                         ],
@@ -495,83 +474,74 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icon(IconlyLight.lock),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _isPasswordVisible ? IconlyLight.show : IconlyLight.hide,
+                                _isPasswordVisible
+                                    ? IconlyLight.show
+                                    : IconlyLight.hide,
                                 color: Color(0xFF2A9D8F),
                               ),
-                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                              onPressed:
+                                  () => setState(
+                                    () =>
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible,
+                                  ),
                             ),
                             hintText: '••••••••',
                             hintStyle: TextStyle(color: Color(0xFF6B7280)),
                           ),
-                          validator: (value) =>
-                              value!.isEmpty && _pinController.text.isEmpty
-                                  ? localizations.translate('enterPasswordOrPin')
-                                  : null,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      FadeInLeft(
-                        duration: Duration(milliseconds: 1200),
-                        child: TextFormField(
-                          controller: _pinController,
-                          obscureText: true,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: localizations.translate('pinCode'),
-                            prefixIcon: Icon(IconlyLight.lock),
-                            hintText: '1234',
-                            hintStyle: TextStyle(color: Color(0xFF6B7280)),
-                          ),
-                          validator: (value) =>
-                              _emailController.text.isEmpty &&
-                                      _passwordController.text.isEmpty &&
-                                      (value == null || value.isEmpty)
-                                  ? localizations.translate('enterPinOrCredentials')
-                                  : null,
+                          validator:
+                              (value) =>
+                                  value!.isEmpty
+                                      ? localizations.translate('enterPassword')
+                                      : null,
                         ),
                       ),
                       SizedBox(height: 24),
                       _isLoading
-                          ? Center(child: CircularProgressIndicator(color: Color(0xFF2A9D8F)))
-                          : Column(
-                              children: [
-                                ZoomIn(
-                                  duration: Duration(milliseconds: 1300),
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _login,
-                                    child: Text(localizations.translate('login')),
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-                                FadeInLeft(
-                                  duration: Duration(milliseconds: 1400),
-                                  child: TextButton(
-                                    onPressed: _navigateToRegister,
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Color(0xFFF4A261),
-                                    ),
-                                    child: Text(
-                                      localizations.translate('dontHaveAccount'),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-                                ZoomIn(
-                                  duration: Duration(milliseconds: 1500),
-                                  child: OutlinedButton(
-                                    onPressed: _continueAsGuest,
-                                    child: Text(
-                                      localizations.translate('continueAsGuest'),
-                                      style: TextStyle(color: Color(0xFF2A9D8F)),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          ? Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF2A9D8F),
                             ),
+                          )
+                          : Column(
+                            children: [
+                              ZoomIn(
+                                duration: Duration(milliseconds: 1300),
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _login,
+                                  child: Text(localizations.translate('login')),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              FadeInLeft(
+                                duration: Duration(milliseconds: 1400),
+                                child: TextButton(
+                                  onPressed: _navigateToRegister,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Color(0xFFF4A261),
+                                  ),
+                                  child: Text(
+                                    localizations.translate('dontHaveAccount'),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              ZoomIn(
+                                duration: Duration(milliseconds: 1500),
+                                child: OutlinedButton(
+                                  onPressed: _continueAsGuest,
+                                  child: Text(
+                                    localizations.translate('continueAsGuest'),
+                                    style: TextStyle(color: Color(0xFF2A9D8F)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                     ],
                   ),
                 ),
