@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:iconly/iconly.dart';
 import 'login_page.dart';
 import '../localizations.dart';
 
@@ -44,25 +47,21 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _isLoading = true);
       try {
         print('Attempting to register user with email: ${_emailController.text}');
-        UserCredential userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            );
+        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
         print('User registered with UID: ${userCredential.user!.uid}');
 
         await userCredential.user?.updateDisplayName(_nameController.text);
         print('User display name updated: ${_nameController.text}');
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
-              'name': _nameController.text,
-              'email': _emailController.text.trim(),
-              'id': DateTime.now().millisecondsSinceEpoch,
-              'role': '', // Пустая роль, выбор в HomeScreen
-            });
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+          'name': _nameController.text,
+          'email': _emailController.text.trim(),
+          'id': DateTime.now().millisecondsSinceEpoch,
+          'role': '', // Empty role, selection in HomeScreen
+        });
         print('User data saved to Firestore for UID: ${userCredential.user!.uid}');
 
         if (mounted) {
@@ -70,12 +69,14 @@ class _RegisterPageState extends State<RegisterPage> {
             SnackBar(
               content: Text(
                 AppLocalizations.of(context).translate('registrationSuccess'),
+                style: TextStyle(color: Colors.white),
               ),
+              backgroundColor: Color(0xFF2A9D8F),
             ),
           );
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
+            MaterialPageRoute(builder: (context) => LoginPage()),
           );
         }
       } on FirebaseAuthException catch (e) {
@@ -123,119 +124,215 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(localizations.translate('register'))),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                Text(
-                  localizations.translate('signUp'),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+    return Theme(
+      data: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFF2A9D8F),
+          secondary: Color(0xFFF4A261),
+          surface: Color(0xFFF8FAFC),
+          onSurface: Color(0xFF264653),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF2A9D8F),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            minimumSize: Size(double.infinity, 48),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF2A9D8F), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.redAccent),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.redAccent, width: 2),
+          ),
+          labelStyle: TextStyle(color: Color(0xFF6B7280)),
+          prefixIconColor: Color(0xFF2A9D8F),
+          suffixIconColor: Color(0xFF2A9D8F),
+        ),
+        cardTheme: CardTheme(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.symmetric(vertical: 8),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: FadeInDown(
+            duration: Duration(milliseconds: 600),
+            child: Text(
+              localizations.translate('register'),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Color(0xFF2A9D8F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          ),
+          elevation: 4,
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(24.0),
+            child: Card(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  textAlign: TextAlign.center,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('name'),
-                    prefixIcon: const Icon(Icons.person),
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? localizations.translate('enterName') : null,
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_emailError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
+                padding: EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FadeInDown(
+                        duration: Duration(milliseconds: 800),
                         child: Text(
-                          _emailError!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                          localizations.translate('signUp'),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF264653),
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: localizations.translate('email'),
-                        prefixIcon: const Icon(Icons.email),
-                        border: const OutlineInputBorder(),
-                        errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        focusedErrorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
+                      SizedBox(height: 32),
+                      FadeInLeft(
+                        duration: Duration(milliseconds: 900),
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: localizations.translate('name'),
+                            prefixIcon: Icon(IconlyLight.profile),
+                            hintText: 'John Doe',
+                            hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                          ),
+                          validator: (value) => value!.isEmpty ? localizations.translate('enterName') : null,
                         ),
                       ),
-                      onChanged: _validateEmail,
-                      validator: (value) {
-                        if (value!.isEmpty) {
-                          return localizations.translate('enterEmail');
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('password'),
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                      SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_emailError != null)
+                            FadeInLeft(
+                              duration: Duration(milliseconds: 1000),
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 8.0),
+                                child: Text(
+                                  _emailError!,
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          FadeInLeft(
+                            duration: Duration(milliseconds: 1100),
+                            child: TextFormField(
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                labelText: localizations.translate('email'),
+                                prefixIcon: Icon(IconlyLight.message),
+                                hintText: 'example@domain.com',
+                                hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                              ),
+                              onChanged: _validateEmail,
+                              validator: (value) => value!.isEmpty ? localizations.translate('enterEmail') : null,
+                            ),
+                          ),
+                        ],
                       ),
-                      onPressed: () =>
-                          setState(() => _isPasswordVisible = !_isPasswordVisible),
-                    ),
-                    border: const OutlineInputBorder(),
+                      SizedBox(height: 16),
+                      FadeInLeft(
+                        duration: Duration(milliseconds: 1200),
+                        child: TextFormField(
+                          controller: _passwordController,
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: localizations.translate('password'),
+                            prefixIcon: Icon(IconlyLight.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible ? IconlyLight.show : IconlyLight.hide,
+                                color: Color(0xFF2A9D8F),
+                              ),
+                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                            ),
+                            hintText: '••••••••',
+                            hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                          ),
+                          validator: (value) => value!.isEmpty ? localizations.translate('enterPassword') : null,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      _isLoading
+                          ? Center(child: CircularProgressIndicator(color: Color(0xFF2A9D8F)))
+                          : Column(
+                              children: [
+                                ZoomIn(
+                                  duration: Duration(milliseconds: 1300),
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _register,
+                                    child: Text(localizations.translate('register')),
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                FadeInLeft(
+                                  duration: Duration(milliseconds: 1400),
+                                  child: TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => LoginPage()),
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(foregroundColor: Color(0xFFF4A261)),
+                                    child: Text(
+                                      localizations.translate('login'),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ],
                   ),
-                  validator: (value) =>
-                      value!.isEmpty ? localizations.translate('enterPassword') : null,
                 ),
-                const SizedBox(height: 24),
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _isLoading ? null : _register,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(localizations.translate('register')),
-                      ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                    );
-                  },
-                  child: Text(localizations.translate('login')),
-                ),
-              ],
+              ),
             ),
           ),
         ),

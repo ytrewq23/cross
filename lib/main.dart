@@ -1,13 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_application_1/pages/offline_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'pages/login_page.dart';
 import 'pages/home.dart';
 import 'theme_language_provider.dart';
 import 'localizations.dart';
+import 'pages/offline_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,7 +47,6 @@ class JobRecruitmentApp extends StatelessWidget {
             home: Scaffold(body: Center(child: CircularProgressIndicator())),
           );
         }
-        // Initialize OfflineService after the app is built
         WidgetsBinding.instance.addPostFrameCallback((_) {
           OfflineService().init();
         });
@@ -66,100 +65,109 @@ class JobRecruitmentApp extends StatelessWidget {
             Locale('ru', 'RU'),
             Locale('kk', 'KZ'),
           ],
-          theme:
-              themeLanguageProvider.isDarkMode
-                  ? ThemeData(
-                    brightness: Brightness.dark,
-                    primaryColor: const Color(0xFF1E2A47),
-                    scaffoldBackgroundColor: const Color(0xFF1C2526),
-                    cardColor: const Color(0xFF2A2F33),
-                    colorScheme: const ColorScheme.dark(
-                      primary: Color(0xFF1E2A47),
-                      secondary: Color(0xFF40C4FF),
-                      surface: Color(0xFF2A2F33),
-                      onPrimary: Colors.white,
-                      onSecondary: Colors.black,
-                      onSurface: Color(0xFFE0E0E0),
+          theme: themeLanguageProvider.isDarkMode
+              ? ThemeData(
+                  brightness: Brightness.dark,
+                  primaryColor: const Color(0xFF1E2A47),
+                  scaffoldBackgroundColor: const Color(0xFF1C2526),
+                  cardColor: const Color(0xFF2A2F33),
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF1E2A47),
+                    secondary: Color(0xFF40C4FF),
+                    surface: Color(0xFF2A2F33),
+                    onPrimary: Colors.white,
+                    onSecondary: Colors.black,
+                    onSurface: Color(0xFFE0E0E0),
+                    error: Colors.red,
+                  ),
+                  textTheme: const TextTheme(
+                    titleLarge: TextStyle(
+                      color: Color(0xFFE0E0E0),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
-                    textTheme: const TextTheme(
-                      titleLarge: TextStyle(
-                        color: Color(0xFFE0E0E0),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                      bodyMedium: TextStyle(
-                        color: Color(0xFFB0B0B0),
-                        fontSize: 16,
-                      ),
-                      labelLarge: TextStyle(
-                        color: Color(0xFFE0E0E0),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    bodyMedium: TextStyle(
+                      color: Color(0xFFB0B0B0),
+                      fontSize: 16,
                     ),
-                    elevatedButtonTheme: ElevatedButtonThemeData(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: const Color(0xFF40C4FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                    labelLarge: TextStyle(
+                      color: Color(0xFFE0E0E0),
+                      fontWeight: FontWeight.w600,
                     ),
-                    appBarTheme: const AppBarTheme(
-                      backgroundColor: Color(0xFF1E2A47),
-                      titleTextStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    bodySmall: TextStyle(
+                      color: Color(0xFFB0B0B0),
+                      fontSize: 12,
                     ),
-                  )
-                  : ThemeData(
-                    brightness: Brightness.light,
-                    primaryColor: Colors.blue,
-                    scaffoldBackgroundColor: Colors.white,
-                    cardColor: Colors.white,
-                    colorScheme: const ColorScheme.light(
-                      primary: Colors.blue,
-                      secondary: Colors.blueAccent,
-                      surface: Colors.white,
-                      onPrimary: Colors.white,
-                      onSecondary: Colors.black,
-                      onSurface: Colors.black87,
-                    ),
-                    textTheme: const TextTheme(
-                      titleLarge: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                      bodyMedium: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 16,
-                      ),
-                      labelLarge: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    elevatedButtonTheme: ElevatedButtonThemeData(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    appBarTheme: const AppBarTheme(
-                      backgroundColor: Colors.blue,
-                      titleTextStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFF40C4FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Color(0xFF1E2A47),
+                    titleTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : ThemeData(
+                  brightness: Brightness.light,
+                  primaryColor: Colors.blue,
+                  scaffoldBackgroundColor: Colors.white,
+                  cardColor: Colors.white,
+                  colorScheme: const ColorScheme.light(
+                    primary: Colors.blue,
+                    secondary: Colors.blueAccent,
+                    surface: Colors.white,
+                    onPrimary: Colors.white,
+                    onSecondary: Colors.black,
+                    onSurface: Colors.black87,
+                    error: Colors.red,
+                  ),
+                  textTheme: const TextTheme(
+                    titleLarge: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                    bodyMedium: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 16,
+                    ),
+                    labelLarge: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    bodySmall: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 12,
+                    ),
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Colors.blue,
+                    titleTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
           home: const SplashScreen(),
         );
       },
@@ -167,7 +175,6 @@ class JobRecruitmentApp extends StatelessWidget {
   }
 }
 
-// Rest of the SplashScreen class remains unchanged
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -175,8 +182,7 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -189,10 +195,9 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -208,26 +213,22 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    } else if (snapshot.hasData && snapshot.data != null) {
-                      return HomeScreen(
-                        userName:
-                            snapshot.data!.displayName ??
-                            snapshot.data!.email ??
-                            '',
-                      );
-                    } else {
-                      return const LoginPage();
-                    }
-                  },
-                ),
+            builder: (context) => StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                } else if (snapshot.hasData && snapshot.data != null) {
+                  return HomeScreen(
+                    userName: snapshot.data!.displayName ?? snapshot.data!.email ?? '',
+                  );
+                } else {
+                  return const LoginPage();
+                }
+              },
+            ),
           ),
         );
       }
@@ -272,9 +273,7 @@ class _SplashScreenState extends State<SplashScreen>
                   localizations.translate('findYourDreamJob'),
                   style: TextStyle(
                     fontSize: 18,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],

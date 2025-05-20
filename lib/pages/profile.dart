@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_1/pages/offline_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:iconly/iconly.dart';
 import 'settings_page.dart';
 import 'about_page.dart';
 import 'help_page.dart';
@@ -15,6 +17,7 @@ import 'edit_job_screen.dart';
 import 'role_selection_dialog.dart';
 import '../localizations.dart';
 import '../orientation_support.dart';
+import 'offline_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -57,28 +60,20 @@ class _ProfilePageState extends State<ProfilePage> {
     if (kIsWeb) {
       html.window.addEventListener('online', (_) {
         if (mounted) {
-          setState(() {
-            _isOnline = true;
-          });
+          setState(() => _isOnline = true);
           _handleReconnect();
         }
       });
       html.window.addEventListener('offline', (_) {
         if (mounted) {
-          setState(() {
-            _isOnline = false;
-          });
+          setState(() => _isOnline = false);
         }
       });
     } else {
       Connectivity().onConnectivityChanged.listen((results) {
         if (mounted) {
-          final newOnline = results.any(
-            (result) => result != ConnectivityResult.none,
-          );
-          setState(() {
-            _isOnline = newOnline;
-          });
+          final newOnline = results.any((result) => result != ConnectivityResult.none);
+          setState(() => _isOnline = newOnline);
           if (newOnline && !_isOnline) {
             _handleReconnect();
           }
@@ -93,15 +88,13 @@ class _ProfilePageState extends State<ProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(
-                context,
-              ).translate('requestsProcessedSuccess'),
+              AppLocalizations.of(context).translate('requestsProcessedSuccess'),
+              style: TextStyle(color: Colors.white),
             ),
+            backgroundColor: Color(0xFF2A9D8F),
           ),
         );
-        setState(() {
-          _hasPendingRequests = false;
-        });
+        setState(() => _hasPendingRequests = false);
         _loadUserData();
       }
     });
@@ -131,31 +124,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       if (_isOnline) {
-        // Try Firestore first
         try {
-          final userDoc =
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .get();
-          final jobsSnapshot =
-              await FirebaseFirestore.instance
-                  .collection('jobs')
-                  .where('employerId', isEqualTo: user.uid)
-                  .get();
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          final jobsSnapshot = await FirebaseFirestore.instance
+              .collection('jobs')
+              .where('employerId', isEqualTo: user.uid)
+              .get();
 
           if (mounted) {
             setState(() {
               _name = user.displayName ?? prefs.getString('name') ?? 'No Name';
               _email = user.email ?? prefs.getString('email') ?? 'No Email';
-              _userRole =
-                  userDoc.data()?['role'] as String? ??
-                  prefs.getString('userRole') ??
-                  '';
-              _jobs =
-                  jobsSnapshot.docs
-                      .map((doc) => {...doc.data(), 'id': doc.id})
-                      .toList();
+              _userRole = userDoc.data()?['role'] as String? ?? prefs.getString('userRole') ?? '';
+              _jobs = jobsSnapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
               if (savedStatus != null && _statuses.contains(savedStatus)) {
                 _status = savedStatus;
               }
@@ -163,7 +144,6 @@ class _ProfilePageState extends State<ProfilePage> {
               _isVerified = avatar != null;
               _isLoading = false;
             });
-            // Cache to SharedPreferences
             await prefs.setString('name', _name);
             await prefs.setString('email', _email);
             await prefs.setString('userRole', _userRole ?? '');
@@ -171,7 +151,6 @@ class _ProfilePageState extends State<ProfilePage> {
           }
         } catch (e) {
           print('Firestore error: $e');
-          // Fall back to SharedPreferences
           final offlineJobs = await OfflineService().getJobsListOffline();
           if (mounted) {
             setState(() {
@@ -189,7 +168,6 @@ class _ProfilePageState extends State<ProfilePage> {
           }
         }
       } else {
-        // Load from SharedPreferences offline
         final offlineJobs = await OfflineService().getJobsListOffline();
         if (mounted) {
           setState(() {
@@ -222,7 +200,9 @@ class _ProfilePageState extends State<ProfilePage> {
           SnackBar(
             content: Text(
               AppLocalizations.of(context).translate('connectToInternet'),
+              style: TextStyle(color: Colors.white),
             ),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -241,76 +221,103 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _pickImage() async {
     try {
-      final stream = await html.window.navigator.mediaDevices?.getUserMedia({
-        'video': true,
-      });
+      final stream = await html.window.navigator.mediaDevices?.getUserMedia({'video': true});
       if (stream == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
                 AppLocalizations.of(context).translate('cameraError'),
+                style: TextStyle(color: Colors.white),
               ),
+              backgroundColor: Colors.redAccent,
             ),
           );
         }
         return;
       }
 
-      final videoElement =
-          html.VideoElement()
-            ..autoplay = true
-            ..srcObject = stream;
+      final videoElement = html.VideoElement()
+        ..autoplay = true
+        ..srcObject = stream;
 
       await videoElement.play();
 
       await showDialog(
         context: context,
-        builder:
-            (dialogCtx) => AlertDialog(
-              title: Text(AppLocalizations.of(context).translate('takePhoto')),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(AppLocalizations.of(context).translate('cameraActive')),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final canvas = html.CanvasElement(
-                        width: videoElement.videoWidth,
-                        height: videoElement.videoHeight,
-                      );
-                      final ctx = canvas.context2D;
-                      ctx.drawImage(videoElement, 0, 0);
-
-                      final base64Image = canvas.toDataUrl('image/png');
-                      await _saveAvatar(base64Image);
-
-                      setState(() {
-                        _avatarBase64 = base64Image;
-                        _isVerified = true;
-                      });
-
-                      stream.getTracks().forEach((track) => track.stop());
-                      Navigator.of(dialogCtx, rootNavigator: true).pop();
-                    },
-                    child: Text(
-                      AppLocalizations.of(context).translate('capture'),
-                    ),
-                    style: _buttonStyle(),
-                  ),
-                ],
+        builder: (dialogCtx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: FadeInDown(
+            duration: Duration(milliseconds: 600),
+            child: Text(
+              AppLocalizations.of(context).translate('takePhoto'),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FadeInLeft(
+                duration: Duration(milliseconds: 700),
+                child: Text(
+                  AppLocalizations.of(context).translate('cameraActive'),
+                  style: TextStyle(color: Color(0xFF6B7280)),
+                ),
+              ),
+              SizedBox(height: 20),
+              ZoomIn(
+                duration: Duration(milliseconds: 800),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final canvas = html.CanvasElement(width: videoElement.videoWidth, height: videoElement.videoHeight);
+                    final ctx = canvas.context2D;
+                    ctx.drawImage(videoElement, 0, 0);
+
+                    final base64Image = canvas.toDataUrl('image/png');
+                    await _saveAvatar(base64Image);
+
+                    setState(() {
+                      _avatarBase64 = base64Image;
+                      _isVerified = true;
+                    });
+
                     stream.getTracks().forEach((track) => track.stop());
                     Navigator.of(dialogCtx, rootNavigator: true).pop();
                   },
-                  child: Text(AppLocalizations.of(context).translate('cancel')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF2A9D8F),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: Size(double.infinity, 48),
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context).translate('capture'),
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          actions: [
+            FadeInLeft(
+              duration: Duration(milliseconds: 900),
+              child: TextButton(
+                onPressed: () {
+                  stream.getTracks().forEach((track) => track.stop());
+                  Navigator.of(dialogCtx, rootNavigator: true).pop();
+                },
+                style: TextButton.styleFrom(foregroundColor: Color(0xFFF4A261)),
+                child: Text(
+                  AppLocalizations.of(context).translate('cancel'),
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
+          ],
+        ),
       );
     } catch (e) {
       print("Error accessing camera: $e");
@@ -319,7 +326,9 @@ class _ProfilePageState extends State<ProfilePage> {
           SnackBar(
             content: Text(
               '${AppLocalizations.of(context).translate('cameraError')}: $e',
+              style: TextStyle(color: Colors.white),
             ),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -335,110 +344,202 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  ButtonStyle _buttonStyle() {
-    return ElevatedButton.styleFrom(
-      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      backgroundColor: Theme.of(context).colorScheme.secondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return withOrientationSupport(
-      context: context,
-      portrait: _buildPortraitLayout(context, localizations),
-      landscape: _buildLandscapeLayout(context, localizations),
+    return Theme(
+      data: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFF2A9D8F),
+          secondary: Color(0xFFF4A261),
+          surface: Color(0xFFF8FAFC),
+          onSurface: Color(0xFF264653),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF2A9D8F),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            minimumSize: Size(double.infinity, 48),
+          ),
+        ),
+        cardTheme: CardTheme(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF2A9D8F), width: 2),
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF2A9D8F),
+          foregroundColor: Colors.white,
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        ),
+      ),
+      child: withOrientationSupport(
+        context: context,
+        portrait: _buildPortraitLayout(context, localizations),
+        landscape: _buildLandscapeLayout(context, localizations),
+      ),
     );
   }
 
-  Widget _buildPortraitLayout(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildPortraitLayout(BuildContext context, AppLocalizations localizations) {
     return Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(localizations.translate('profile')),
+        title: FadeInDown(
+          duration: Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('profile'),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ),
         centerTitle: true,
-        flexibleSpace:
-            _isOnline
-                ? null
-                : Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.red.withOpacity(0.3),
-                        Colors.red.withOpacity(0.1),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+        backgroundColor: _isOnline ? Color(0xFF2A9D8F) : Colors.red,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+        elevation: 4,
+        flexibleSpace: _isOnline
+            ? null
+            : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  child: Center(
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                ),
+                child: Center(
+                  child: FadeInDown(
+                    duration: Duration(milliseconds: 700),
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
                 ),
+              ),
       ),
       endDrawer: Drawer(
-        child: ListView(
-          children: [
-            ListTile(
-              title: Text(localizations.translate('aboutTheApp')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => AboutPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: Text(localizations.translate('settings')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: Text(localizations.translate('help')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => HelpPage()),
-                );
-              },
-            ),
-          ],
+        child: Container(
+          color: Color(0xFFF8FAFC),
+          child: ListView(
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF2A9D8F), Color(0xFFF4A261)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    localizations.translate('menu'),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              FadeInLeft(
+                duration: Duration(milliseconds: 800),
+                child: ListTile(
+                  leading: Icon(IconlyLight.info_circle, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('aboutTheApp'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => AboutPage()));
+                  },
+                ),
+              ),
+              FadeInLeft(
+                duration: Duration(milliseconds: 900),
+                child: ListTile(
+                  leading: Icon(IconlyLight.setting, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('settings'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage()));
+                  },
+                ),
+              ),
+              FadeInLeft(
+                duration: Duration(milliseconds: 1000),
+                child: ListTile(
+                  leading: Icon(IconlyLight.chat, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('help'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => HelpPage()));
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _userRole == null || _userRole!.isEmpty
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF2A9D8F)))
+          : _userRole == null || _userRole!.isEmpty
               ? _buildNoRoleContent(context, localizations)
               : _userRole == 'jobSeeker'
-              ? _buildJobSeekerContent(context, localizations)
-              : _buildEmployerContent(context, localizations),
-      floatingActionButton:
-          _userRole == 'employer'
-              ? FloatingActionButton(
+                  ? _buildJobSeekerContent(context, localizations)
+                  : _buildEmployerContent(context, localizations),
+      floatingActionButton: _userRole == 'employer'
+          ? ZoomIn(
+              duration: Duration(milliseconds: 1100),
+              child: FloatingActionButton(
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateJobScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => CreateJobScreen()),
                   );
                   if (result != null && result is Map<String, dynamic>) {
                     final jobData = {
@@ -448,23 +549,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     };
                     try {
                       if (_isOnline) {
-                        final docRef = await FirebaseFirestore.instance
-                            .collection('jobs')
-                            .add(jobData);
+                        final docRef = await FirebaseFirestore.instance.collection('jobs').add(jobData);
                         setState(() {
                           _jobs.add({...jobData, 'id': docRef.id});
                         });
                         await OfflineService().saveJobsListOffline(_jobs);
                       } else {
-                        await OfflineService().saveJobOffline(
-                          jobData,
-                          'create',
-                        );
+                        await OfflineService().saveJobOffline(jobData, 'create');
                         setState(() {
-                          _jobs.add({
-                            ...jobData,
-                            'id': 'offline_${_jobs.length}',
-                          });
+                          _jobs.add({...jobData, 'id': 'offline_${_jobs.length}'});
                           _hasPendingRequests = true;
                         });
                         if (mounted) {
@@ -472,7 +565,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             SnackBar(
                               content: Text(
                                 localizations.translate('offlineModeWarning'),
+                                style: TextStyle(color: Colors.white),
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                         }
@@ -484,159 +579,223 @@ class _ProfilePageState extends State<ProfilePage> {
                           SnackBar(
                             content: Text(
                               localizations.translate('offlineModeWarning'),
+                              style: TextStyle(color: Colors.white),
                             ),
+                            backgroundColor: Colors.redAccent,
                           ),
                         );
                       }
                     }
                   }
                 },
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                child: const Icon(Icons.add),
                 tooltip: localizations.translate('createJob'),
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              )
-              : null,
+                child: Icon(IconlyLight.work),
+              ),
+            )
+          : null,
     );
   }
 
-  Widget _buildLandscapeLayout(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildLandscapeLayout(BuildContext context, AppLocalizations localizations) {
     return Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(localizations.translate('profile')),
+        title: FadeInDown(
+          duration: Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('profile'),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ),
         centerTitle: true,
-        flexibleSpace:
-            _isOnline
-                ? null
-                : Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.red.withOpacity(0.3),
-                        Colors.red.withOpacity(0.1),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+        backgroundColor: _isOnline ? Color(0xFF2A9D8F) : Colors.red,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+        elevation: 4,
+        flexibleSpace: _isOnline
+            ? null
+            : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  child: Center(
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                ),
+                child: Center(
+                  child: FadeInDown(
+                    duration: Duration(milliseconds: 700),
                     child: Text(
                       localizations.translate('connectToInternet'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
                 ),
+              ),
       ),
       endDrawer: Drawer(
-        child: ListView(
-          children: [
-            ListTile(
-              title: Text(localizations.translate('aboutTheApp')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => AboutPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: Text(localizations.translate('settings')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: Text(localizations.translate('help')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => HelpPage()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ClipOval(
-                            child:
-                                _avatarBase64 != null
-                                    ? Image.memory(
-                                      base64Decode(
-                                        _avatarBase64!.split(',').last,
-                                      ),
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Image.asset(
-                                      _placeholderAvatar,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _name,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _email,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
+        child: Container(
+          color: Color(0xFFF8FAFC),
+          child: ListView(
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF2A9D8F), Color(0xFFF4A261)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    localizations.translate('menu'),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Expanded(
-                    flex: 2,
-                    child:
-                        _userRole == null || _userRole!.isEmpty
-                            ? _buildNoRoleContent(context, localizations)
-                            : _userRole == 'jobSeeker'
-                            ? _buildJobSeekerContent(context, localizations)
-                            : _buildEmployerContent(context, localizations),
-                  ),
-                ],
+                ),
               ),
-      floatingActionButton:
-          _userRole == 'employer'
-              ? FloatingActionButton(
+              FadeInLeft(
+                duration: Duration(milliseconds: 800),
+                child: ListTile(
+                  leading: Icon(IconlyLight.info_circle, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('aboutTheApp'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => AboutPage()));
+                  },
+                ),
+              ),
+              FadeInLeft(
+                duration: Duration(milliseconds: 900),
+                child: ListTile(
+                  leading: Icon(IconlyLight.setting, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('settings'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage()));
+                  },
+                ),
+              ),
+              FadeInLeft(
+                duration: Duration(milliseconds: 1000),
+                child: ListTile(
+                  leading: Icon(IconlyLight.chat, color: Color(0xFF2A9D8F)),
+                  title: Text(
+                    localizations.translate('help'),
+                    style: TextStyle(
+                      color: Color(0xFF264653),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => HelpPage()));
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF2A9D8F)))
+          : Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FadeInDown(
+                          duration: Duration(milliseconds: 800),
+                          child: ClipOval(
+                            child: _avatarBase64 != null
+                                ? Image.memory(
+                                    base64Decode(_avatarBase64!.split(',').last),
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.asset(
+                                    _placeholderAvatar,
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        FadeInLeft(
+                          duration: Duration(milliseconds: 900),
+                          child: Text(
+                            _name,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF264653),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        FadeInLeft(
+                          duration: Duration(milliseconds: 1000),
+                          child: Text(
+                            _email,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _userRole == null || _userRole!.isEmpty
+                      ? _buildNoRoleContent(context, localizations)
+                      : _userRole == 'jobSeeker'
+                          ? _buildJobSeekerContent(context, localizations)
+                          : _buildEmployerContent(context, localizations),
+                ),
+              ],
+            ),
+      floatingActionButton: _userRole == 'employer'
+          ? ZoomIn(
+              duration: Duration(milliseconds: 1100),
+              child: FloatingActionButton(
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateJobScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => CreateJobScreen()),
                   );
                   if (result != null && result is Map<String, dynamic>) {
                     final jobData = {
@@ -646,23 +805,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     };
                     try {
                       if (_isOnline) {
-                        final docRef = await FirebaseFirestore.instance
-                            .collection('jobs')
-                            .add(jobData);
+                        final docRef = await FirebaseFirestore.instance.collection('jobs').add(jobData);
                         setState(() {
                           _jobs.add({...jobData, 'id': docRef.id});
                         });
                         await OfflineService().saveJobsListOffline(_jobs);
                       } else {
-                        await OfflineService().saveJobOffline(
-                          jobData,
-                          'create',
-                        );
+                        await OfflineService().saveJobOffline(jobData, 'create');
                         setState(() {
-                          _jobs.add({
-                            ...jobData,
-                            'id': 'offline_${_jobs.length}',
-                          });
+                          _jobs.add({...jobData, 'id': 'offline_${_jobs.length}'});
                           _hasPendingRequests = true;
                         });
                         if (mounted) {
@@ -670,7 +821,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             SnackBar(
                               content: Text(
                                 localizations.translate('offlineModeWarning'),
+                                style: TextStyle(color: Colors.white),
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                         }
@@ -682,171 +835,196 @@ class _ProfilePageState extends State<ProfilePage> {
                           SnackBar(
                             content: Text(
                               localizations.translate('offlineModeWarning'),
+                              style: TextStyle(color: Colors.white),
                             ),
+                            backgroundColor: Colors.redAccent,
                           ),
                         );
                       }
                     }
                   }
                 },
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                child: const Icon(Icons.add),
                 tooltip: localizations.translate('createJob'),
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              )
-              : null,
+                child: Icon(IconlyLight.work),
+              ),
+            )
+          : null,
     );
   }
 
-  Widget _buildNoRoleContent(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildNoRoleContent(BuildContext context, AppLocalizations localizations) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            localizations.translate('pleaseSelectRole'),
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
+          FadeInDown(
+            duration: Duration(milliseconds: 800),
+            child: Text(
+              localizations.translate('pleaseSelectRole'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                if (_isOnline) {
-                  await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder:
-                        (dialogContext) =>
-                            RoleSelectionDialog(userId: user.uid),
-                  );
-                  await _loadUserData();
-                } else {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('userRole', 'jobSeeker');
-                  setState(() {
-                    _userRole = 'jobSeeker';
-                    _hasPendingRequests = true;
-                  });
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          localizations.translate('offlineModeWarning'),
-                        ),
-                      ),
+          SizedBox(height: 20),
+          ZoomIn(
+            duration: Duration(milliseconds: 900),
+            child: ElevatedButton(
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  if (_isOnline) {
+                    await showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (dialogContext) => RoleSelectionDialog(userId: user.uid),
                     );
+                    await _loadUserData();
+                  } else {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('userRole', 'jobSeeker');
+                    setState(() {
+                      _userRole = 'jobSeeker';
+                      _hasPendingRequests = true;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            localizations.translate('offlineModeWarning'),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
                   }
                 }
-              }
-            },
-            style: _buttonStyle(),
-            child: Text(localizations.translate('selectRole')),
+              },
+              child: Text(localizations.translate('selectRole')),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildJobSeekerContent(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildJobSeekerContent(BuildContext context, AppLocalizations localizations) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.0),
       child: ListView(
         children: [
           Center(
             child: Column(
               children: [
-                ClipOval(
-                  child:
-                      _avatarBase64 != null
-                          ? Image.memory(
+                FadeInDown(
+                  duration: Duration(milliseconds: 800),
+                  child: ClipOval(
+                    child: _avatarBase64 != null
+                        ? Image.memory(
                             base64Decode(_avatarBase64!.split(',').last),
                             width: 120,
                             height: 120,
                             fit: BoxFit.cover,
                           )
-                          : Image.asset(
+                        : Image.asset(
                             _placeholderAvatar,
                             width: 120,
                             height: 120,
                             fit: BoxFit.cover,
                           ),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _isVerified ? null : _pickImage,
-                  style: _buttonStyle(),
-                  child: Text(
-                    _isVerified
-                        ? localizations.translate('verified')
-                        : localizations.translate('verifyYourself'),
+                SizedBox(height: 10),
+                ZoomIn(
+                  duration: Duration(milliseconds: 900),
+                  child: ElevatedButton(
+                    onPressed: _isVerified ? null : _pickImage,
+                    child: Text(
+                      _isVerified
+                          ? localizations.translate('verified')
+                          : localizations.translate('verifyYourself'),
+                    ),
                   ),
                 ),
                 if (_isVerified)
                   Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: ElevatedButton(
-                      onPressed: _deleteAvatar,
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
-                        backgroundColor: Colors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    padding: EdgeInsets.only(top: 10),
+                    child: ZoomIn(
+                      duration: Duration(milliseconds: 1000),
+                      child: ElevatedButton(
+                        onPressed: _deleteAvatar,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          minimumSize: Size(double.infinity, 48),
+                        ),
+                        child: Text(
+                          localizations.translate('deletePhoto'),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
-                      child: Text(localizations.translate('deletePhoto')),
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          _buildCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_name, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(
-                  _email,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
+          SizedBox(height: 20),
+          FadeInLeft(
+            duration: Duration(milliseconds: 1100),
+            child: _buildCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _name,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF264653),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                DropdownButton<String>(
-                  value: _status,
-                  icon: const Icon(Icons.arrow_drop_down),
-                  isExpanded: true,
-                  items:
-                      _statuses.map((String statusKey) {
-                        return DropdownMenuItem<String>(
-                          value: statusKey,
-                          child: Text(localizations.translate(statusKey)),
-                        );
-                      }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _status = newValue;
-                      });
-                      _saveStatus(newValue);
-                    }
-                  },
-                ),
-              ],
+                  SizedBox(height: 8),
+                  Text(
+                    _email,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFF4A261),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  DropdownButton<String>(
+                    value: _status,
+                    icon: Icon(IconlyLight.arrow_down_2, color: Color(0xFF2A9D8F)),
+                    isExpanded: true,
+                    items: _statuses.map((String statusKey) {
+                      return DropdownMenuItem<String>(
+                        value: statusKey,
+                        child: Text(
+                          localizations.translate(statusKey),
+                          style: TextStyle(color: Color(0xFF264653)),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() => _status = newValue);
+                        _saveStatus(newValue);
+                      }
+                    },
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF264653),
+                    ),
+                    dropdownColor: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -854,123 +1032,168 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEmployerContent(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildEmployerContent(BuildContext context, AppLocalizations localizations) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.0),
       child: ListView(
         children: [
           Center(
             child: Column(
               children: [
-                ClipOval(
-                  child:
-                      _avatarBase64 != null
-                          ? Image.memory(
+                FadeInDown(
+                  duration: Duration(milliseconds: 800),
+                  child: ClipOval(
+                    child: _avatarBase64 != null
+                        ? Image.memory(
                             base64Decode(_avatarBase64!.split(',').last),
                             width: 120,
                             height: 120,
                             fit: BoxFit.cover,
                           )
-                          : Image.asset(
+                        : Image.asset(
                             _placeholderAvatar,
                             width: 120,
                             height: 120,
                             fit: BoxFit.cover,
                           ),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Text(_name, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(
-                  _email,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
+                SizedBox(height: 10),
+                FadeInLeft(
+                  duration: Duration(milliseconds: 900),
+                  child: Text(
+                    _name,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF264653),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                FadeInLeft(
+                  duration: Duration(milliseconds: 1000),
+                  child: Text(
+                    _email,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFF4A261),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            localizations.translate('yourJobs'),
-            style: Theme.of(context).textTheme.titleLarge,
+          SizedBox(height: 20),
+          FadeInLeft(
+            duration: Duration(milliseconds: 1100),
+            child: Text(
+              localizations.translate('yourJobs'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           _jobs.isEmpty
               ? Center(
-                child: Text(
-                  _isOnline
-                      ? localizations.translate('noJobsCreated')
-                      : localizations.translate('connectToInternet'),
-                ),
-              )
+                  child: FadeInLeft(
+                    duration: Duration(milliseconds: 1200),
+                    child: Text(
+                      _isOnline
+                          ? localizations.translate('noJobsCreated')
+                          : localizations.translate('connectToInternet'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                )
               : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _jobs.length,
-                itemBuilder: (context, index) {
-                  final job = _jobs[index];
-                  final jobId = job['id'] ?? 'offline_${index}';
-                  return _buildJobCard(context, job, jobId, localizations);
-                },
-              ),
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: _jobs.length,
+                  itemBuilder: (context, index) {
+                    final job = _jobs[index];
+                    final jobId = job['id'] ?? 'offline_${index}';
+                    return FadeInLeft(
+                      duration: Duration(milliseconds: 1300 + index * 100),
+                      child: _buildJobCard(context, job, jobId, localizations),
+                    );
+                  },
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildJobCard(
-    BuildContext context,
-    Map<String, dynamic> job,
-    String jobId,
-    AppLocalizations localizations,
-  ) {
+  Widget _buildJobCard(BuildContext context, Map<String, dynamic> job, String jobId, AppLocalizations localizations) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(
-          job['title'] ?? 'Untitled',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${localizations.translate('category')}: ${job['category']}'),
-            Text('${localizations.translate('city')}: ${job['city']}'),
-            Text('${localizations.translate('salary')}: ${job['salary']}'),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(
-            Icons.edit,
-            color: Theme.of(context).colorScheme.secondary,
+        child: ListTile(
+          contentPadding: EdgeInsets.all(16),
+          title: Text(
+            job['title'] ?? 'Untitled',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2A9D8F),
+            ),
           ),
-          onPressed: () {
-            if (_isOnline) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => EditJobScreen(jobId: jobId, jobData: job),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(localizations.translate('offlineModeWarning')),
-                ),
-              );
-            }
-          },
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${localizations.translate('category')}: ${job['category']}',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+              Text(
+                '${localizations.translate('city')}: ${job['city']}',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+              Text(
+                '${localizations.translate('salary')}: ${job['salary']}',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+            ],
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              IconlyLight.edit,
+              color: Color(0xFFF4A261),
+            ),
+            onPressed: () {
+              if (_isOnline) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditJobScreen(jobId: jobId, jobData: job),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      localizations.translate('offlineModeWarning'),
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
@@ -978,9 +1201,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildCard({required Widget child}) {
     return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: EdgeInsets.all(16),
+        child: child,
+      ),
     );
   }
 }

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:iconly/iconly.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../localizations.dart';
 import 'home.dart';
 import 'register_page.dart';
+import 'offline_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,17 +19,36 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _pinController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String? _emailError;
+  bool _isOnline = true;
+  int _currentPage = 0;
 
   final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  final PageController _pageController = PageController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnection();
+  }
+
+  Future<void> _checkConnection() async {
+    bool isOnline = await OfflineService().checkConnection();
+    if (mounted) {
+      setState(() => _isOnline = isOnline);
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _pinController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -43,28 +67,74 @@ class _LoginPageState extends State<LoginPage> {
   void _login() async {
     if (!mounted) return;
 
-    if (_formKey.currentState!.validate() && _emailError == null) {
+    final localizations = AppLocalizations.of(context);
+    if (_formKey.currentState!.validate() && (_emailError == null || _pinController.text.isNotEmpty)) {
       setState(() => _isLoading = true);
+      final prefs = await SharedPreferences.getInstance();
+
+      // Try PIN login first
+      if (_pinController.text.isNotEmpty) {
+        final storedPin = prefs.getString('pin');
+        final offlineUserId = prefs.getString('offline_user_id');
+        if (storedPin != null && storedPin == _pinController.text && offlineUserId != null) {
+          print('PIN login successful for user ID: $offlineUserId');
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomeScreen(userName: prefs.getString('name') ?? 'User'),
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  storedPin == null || storedPin != _pinController.text
+                      ? localizations.translate('invalidPin')
+                      : localizations.translate('noUserForPin'),
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // Proceed with Firebase login if PIN is empty and online
+      if (!_isOnline) {
+        if (mounted) {
+          OfflineService().showOfflineSnackBar(context);
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
       try {
         print('Attempting to sign in with email: ${_emailController.text}');
-        UserCredential userCredential = await FirebaseAuth.instance
-            .signInWithEmailAndPassword(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            );
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
         print('User signed in with UID: ${userCredential.user!.uid}');
+
+        // Store user ID and name for offline PIN login
+        await prefs.setString('offline_user_id', userCredential.user!.uid);
+        await prefs.setString('name', userCredential.user?.displayName ?? userCredential.user?.email ?? '');
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder:
-                  (context) => HomeScreen(
-                    userName:
-                        userCredential.user?.displayName ??
-                        userCredential.user?.email ??
-                        '',
-                  ),
+              builder: (context) => HomeScreen(
+                userName: userCredential.user?.displayName ?? userCredential.user?.email ?? '',
+              ),
             ),
           );
         }
@@ -75,23 +145,20 @@ class _LoginPageState extends State<LoginPage> {
         String errorMessage;
         switch (e.code) {
           case 'user-not-found':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('userNotFound');
+            errorMessage = localizations.translate('userNotFound');
             break;
           case 'wrong-password':
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('wrongPassword');
+            errorMessage = localizations.translate('wrongPassword');
             break;
           default:
-            errorMessage = AppLocalizations.of(
-              context,
-            ).translate('invalidCredentials');
+            errorMessage = localizations.translate('invalidCredentials');
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
         setState(() => _isLoading = false);
       } catch (e) {
         print('Unexpected error during login: $e');
@@ -100,8 +167,10 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).translate('invalidCredentials'),
+              localizations.translate('invalidCredentials'),
+              style: TextStyle(color: Colors.white),
             ),
+            backgroundColor: Colors.redAccent,
           ),
         );
         setState(() => _isLoading = false);
@@ -130,131 +199,383 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(localizations.translate('login'))),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                Text(
-                  localizations.translate('welcomeBack'),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+
+    // Onboarding pages for the carousel
+    List<Widget> onboardingPages = [
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.work, size: 100, color: Color(0xFF2A9D8F)),
+            SizedBox(height: 16),
+            Text(
+              localizations.translate('startYourJobSearch'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              localizations.translate('beginJourney'),
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person, size: 100, color: Color(0xFF2A9D8F)),
+            SizedBox(height: 16),
+            Text(
+              localizations.translate('createProfile'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              localizations.translate('standOut'),
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 100, color: Color(0xFF2A9D8F)),
+            SizedBox(height: 16),
+            Text(
+              localizations.translate('findOpportunities'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF264653),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              localizations.translate('matchSkills'),
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    return Theme(
+      data: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFF2A9D8F),
+          secondary: Color(0xFFF4A261),
+          surface: Color(0xFFF8FAFC),
+          onSurface: Color(0xFF264653),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF2A9D8F),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            minimumSize: Size(double.infinity, 48),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            side: BorderSide(color: Color(0xFF2A9D8F)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF6B7280)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF2A9D8F), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.redAccent),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.redAccent, width: 2),
+          ),
+          labelStyle: TextStyle(color: Color(0xFF6B7280)),
+          prefixIconColor: Color(0xFF2A9D8F),
+          suffixIconColor: Color(0xFF2A9D8F),
+        ),
+        cardTheme: CardTheme(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.symmetric(vertical: 8),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: FadeInDown(
+            duration: Duration(milliseconds: 600),
+            child: Text(
+              localizations.translate('login'),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: _isOnline ? Color(0xFF2A9D8F) : Colors.red,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          ),
+          elevation: 4,
+          flexibleSpace: !_isOnline
+              ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
                   ),
-                  textAlign: TextAlign.center,
+                  child: Center(
+                    child: FadeInDown(
+                      duration: Duration(milliseconds: 700),
+                      child: Text(
+                        localizations.translate('connectToInternet'),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(24.0),
+            child: Card(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 32),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_emailError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
+                padding: EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Onboarding carousel
+                      SizedBox(
+                        height: 200,
+                        child: Stack(
+                          children: [
+                            PageView(
+                              controller: _pageController,
+                              onPageChanged: (int page) {
+                                setState(() => _currentPage = page);
+                              },
+                              children: onboardingPages,
+                            ),
+                            Positioned(
+                              bottom: 10,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  onboardingPages.length,
+                                  (index) => AnimatedContainer(
+                                    duration: Duration(milliseconds: 300),
+                                    margin: EdgeInsets.symmetric(horizontal: 4),
+                                    height: 8,
+                                    width: _currentPage == index ? 24 : 8,
+                                    decoration: BoxDecoration(
+                                      color: _currentPage == index ? Color(0xFF2A9D8F) : Color(0xFF6B7280),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 32),
+                      FadeInDown(
+                        duration: Duration(milliseconds: 800),
                         child: Text(
-                          _emailError!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                          localizations.translate('welcomeBack'),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF264653),
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: localizations.translate('email'),
-                        prefixIcon: const Icon(Icons.email),
-                        border: const OutlineInputBorder(),
-                        errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        focusedErrorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
+                      SizedBox(height: 32),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_emailError != null)
+                            FadeInLeft(
+                              duration: Duration(milliseconds: 900),
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 8.0),
+                                child: Text(
+                                  _emailError!,
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          FadeInLeft(
+                            duration: Duration(milliseconds: 1000),
+                            child: TextFormField(
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                labelText: localizations.translate('email'),
+                                prefixIcon: Icon(IconlyLight.message),
+                                hintText: 'example@domain.com',
+                                hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                              ),
+                              onChanged: _validateEmail,
+                              validator: (value) =>
+                                  value!.isEmpty && _pinController.text.isEmpty
+                                      ? localizations.translate('enterEmailOrPin')
+                                      : null,
+                            ),
+                          ),
+                        ],
                       ),
-                      onChanged: _validateEmail,
-                      validator:
-                          (value) =>
-                              value!.isEmpty
-                                  ? localizations.translate('enterEmail')
+                      SizedBox(height: 16),
+                      FadeInLeft(
+                        duration: Duration(milliseconds: 1100),
+                        child: TextFormField(
+                          controller: _passwordController,
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: localizations.translate('password'),
+                            prefixIcon: Icon(IconlyLight.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible ? IconlyLight.show : IconlyLight.hide,
+                                color: Color(0xFF2A9D8F),
+                              ),
+                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                            ),
+                            hintText: '••••••••',
+                            hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                          ),
+                          validator: (value) =>
+                              value!.isEmpty && _pinController.text.isEmpty
+                                  ? localizations.translate('enterPasswordOrPin')
                                   : null,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('password'),
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                        ),
                       ),
-                      onPressed:
-                          () => setState(
-                            () => _isPasswordVisible = !_isPasswordVisible,
+                      SizedBox(height: 16),
+                      FadeInLeft(
+                        duration: Duration(milliseconds: 1200),
+                        child: TextFormField(
+                          controller: _pinController,
+                          obscureText: true,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: localizations.translate('pinCode'),
+                            prefixIcon: Icon(IconlyLight.lock),
+                            hintText: '1234',
+                            hintStyle: TextStyle(color: Color(0xFF6B7280)),
                           ),
-                    ),
-                    border: const OutlineInputBorder(),
+                          validator: (value) =>
+                              _emailController.text.isEmpty &&
+                                      _passwordController.text.isEmpty &&
+                                      (value == null || value.isEmpty)
+                                  ? localizations.translate('enterPinOrCredentials')
+                                  : null,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      _isLoading
+                          ? Center(child: CircularProgressIndicator(color: Color(0xFF2A9D8F)))
+                          : Column(
+                              children: [
+                                ZoomIn(
+                                  duration: Duration(milliseconds: 1300),
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _login,
+                                    child: Text(localizations.translate('login')),
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                FadeInLeft(
+                                  duration: Duration(milliseconds: 1400),
+                                  child: TextButton(
+                                    onPressed: _navigateToRegister,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Color(0xFFF4A261),
+                                    ),
+                                    child: Text(
+                                      localizations.translate('dontHaveAccount'),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                ZoomIn(
+                                  duration: Duration(milliseconds: 1500),
+                                  child: OutlinedButton(
+                                    onPressed: _continueAsGuest,
+                                    child: Text(
+                                      localizations.translate('continueAsGuest'),
+                                      style: TextStyle(color: Color(0xFF2A9D8F)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ],
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty
-                              ? localizations.translate('enterPassword')
-                              : null,
                 ),
-                const SizedBox(height: 24),
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : Column(
-                      children: [
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(localizations.translate('login')),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: _navigateToRegister,
-                          child: Text(
-                            localizations.translate('dontHaveAccount'),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton(
-                          onPressed: _continueAsGuest,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            localizations.translate('continueAsGuest'),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-              ],
+              ),
             ),
           ),
         ),
