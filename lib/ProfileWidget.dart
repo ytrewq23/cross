@@ -19,7 +19,12 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'Profile',
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
             SwitchListTile(
+              key: const Key('theme_switch'),
               title: const Text('Toggle Theme'),
               value: isDarkMode,
               onChanged: (value) {
@@ -29,7 +34,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
               },
             ),
             DropdownButton<String>(
-              key: const Key('language_dropdown'), // Add key for reliable testing
+              key: const Key('language_dropdown'),
               value: language,
               items: const [
                 DropdownMenuItem(value: 'en', child: Text('English')),
@@ -45,7 +50,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
               },
               hint: const Text('Select Language'),
             ),
-            Text('Selected Language: $language'), // Display selected language
+            Text('Selected Language: $language'),
           ],
         ),
       ),
