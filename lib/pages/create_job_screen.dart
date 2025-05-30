@@ -74,9 +74,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         SnackBar(
           content: Text(
             AppLocalizations.of(context).translate('fillAllFields'),
-            style: TextStyle(color: Colors.white),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
           ),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -85,291 +85,295 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('createJob'),
+            style: theme.appBarTheme.titleTextStyle,
+          ),
         ),
-        colorScheme: ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
+        backgroundColor: theme.colorScheme.primary,
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF2A9D8F),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
+        elevation: 4,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Card(
+          color: theme.cardColor,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: theme.brightness == Brightness.dark
+                    ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
-            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            minimumSize: Size(double.infinity, 48),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF6B7280)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFFF4A261), width: 2),
-          ),
-          labelStyle: TextStyle(color: Color(0xFF6B7280)),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.redAccent),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.redAccent, width: 2),
-          ),
-        ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: EdgeInsets.symmetric(vertical: 8),
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('createJob'),
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ),
-          backgroundColor: Color(0xFF2A9D8F),
-          centerTitle: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 700),
-                      child: TextFormField(
-                        controller: _titleController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('jobTitle'),
-                          prefixIcon: Icon(IconlyLight.bookmark, color: Color(0xFFF4A261)),
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 700),
+                    child: TextFormField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('jobTitle'),
+                        prefixIcon: Icon(IconlyLight.bookmark, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterJobTitle');
-                          }
-                          return null;
-                        },
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterJobTitle');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 800),
-                      child: TextFormField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('description'),
-                          prefixIcon: Icon(IconlyLight.document, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 800),
+                    child: TextFormField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('description'),
+                        prefixIcon: Icon(IconlyLight.document, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterDescription');
-                          }
-                          return null;
-                        },
                       ),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterDescription');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 900),
-                      child: DropdownButtonFormField<String>(
-                        value: _category,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('category'),
-                          prefixIcon: Icon(IconlyLight.category, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 900),
+                    child: DropdownButtonFormField<String>(
+                      value: _category,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('category'),
+                        prefixIcon: Icon(IconlyLight.category, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        items: _categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(localizations.translate(category)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _category = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return localizations.translate('selectCategory');
-                          }
-                          return null;
-                        },
                       ),
+                      items: _categories.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(localizations.translate(category)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _category = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return localizations.translate('selectCategory');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1000),
-                      child: TextFormField(
-                        controller: _salaryController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('salary'),
-                          prefixIcon: Icon(IconlyLight.wallet, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1000),
+                    child: TextFormField(
+                      controller: _salaryController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('salary'),
+                        prefixIcon: Icon(IconlyLight.wallet, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterSalary');
-                          }
-                          return null;
-                        },
                       ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterSalary');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1100),
-                      child: TextFormField(
-                        controller: _cityController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('city'),
-                          prefixIcon: Icon(IconlyLight.location, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1100),
+                    child: TextFormField(
+                      controller: _cityController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('city'),
+                        prefixIcon: Icon(IconlyLight.location, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterCity');
-                          }
-                          return null;
-                        },
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterCity');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1200),
-                      child: DropdownButtonFormField<String>(
-                        value: _schedule,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('schedule'),
-                          prefixIcon: Icon(IconlyLight.time_circle, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1200),
+                    child: DropdownButtonFormField<String>(
+                      value: _schedule,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('schedule'),
+                        prefixIcon: Icon(IconlyLight.time_circle, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        items: _schedules.map((schedule) {
-                          return DropdownMenuItem(
-                            value: schedule,
-                            child: Text(localizations.translate(schedule)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _schedule = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return localizations.translate('selectSchedule');
-                          }
-                          return null;
-                        },
                       ),
+                      items: _schedules.map((schedule) {
+                        return DropdownMenuItem(
+                          value: schedule,
+                          child: Text(localizations.translate(schedule)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _schedule = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return localizations.translate('selectSchedule');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1300),
-                      child: DropdownButtonFormField<String>(
-                        value: _employmentType,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('employmentType'),
-                          prefixIcon: Icon(IconlyLight.work, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1300),
+                    child: DropdownButtonFormField<String>(
+                      value: _employmentType,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('employmentType'),
+                        prefixIcon: Icon(IconlyLight.work, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        items: _employmentTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(localizations.translate(type)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _employmentType = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return localizations.translate('selectEmploymentType');
-                          }
-                          return null;
-                        },
                       ),
+                      items: _employmentTypes.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(localizations.translate(type)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _employmentType = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return localizations.translate('selectEmploymentType');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1400),
-                      child: TextFormField(
-                        controller: _requirementsController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('requirements'),
-                          prefixIcon: Icon(IconlyLight.chart, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1400),
+                    child: TextFormField(
+                      controller: _requirementsController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('requirements'),
+                        prefixIcon: Icon(IconlyLight.chart, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterRequirements');
-                          }
-                          return null;
-                        },
                       ),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterRequirements');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    FadeInLeft(
-                      duration: Duration(milliseconds: 1500),
-                      child: TextFormField(
-                        controller: _contactInfoController,
-                        decoration: InputDecoration(
-                          labelText: localizations.translate('contactInfo'),
-                          prefixIcon: Icon(IconlyLight.call, color: Color(0xFFF4A261)),
+                  ),
+                  const SizedBox(height: 10),
+                  FadeInLeft(
+                    duration: const Duration(milliseconds: 1500),
+                    child: TextFormField(
+                      controller: _contactInfoController,
+                      decoration: InputDecoration(
+                        labelText: localizations.translate('contactInfo'),
+                        prefixIcon: Icon(IconlyLight.call, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations.translate('enterContactInfo');
-                          }
-                          return null;
-                        },
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return localizations.translate('enterContactInfo');
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 20),
-                    ZoomIn(
-                      duration: Duration(milliseconds: 1600),
-                      child: ElevatedButton(
-                        onPressed: _submitForm,
-                        child: Text(localizations.translate('save')),
+                  ),
+                  const SizedBox(height: 20),
+                  ZoomIn(
+                    duration: const Duration(milliseconds: 1600),
+                    child: ElevatedButton(
+                      onPressed: _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      child: Text(localizations.translate('save')),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

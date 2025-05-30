@@ -2,45 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ThemeLanguageProvider extends ChangeNotifier {
+class ThemeLanguageProvider with ChangeNotifier {
   bool _isDarkMode = false;
-  String _language = 'Русский';
+  String _language = 'ru';
   Locale _locale = const Locale('ru');
   bool _isInitialized = false;
+
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+
+  ThemeLanguageProvider({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance {
+    _loadPreferences();
+  }
 
   bool get isDarkMode => _isDarkMode;
   String get language => _language;
   Locale get locale => _locale;
   bool get isInitialized => _isInitialized;
 
-  ThemeLanguageProvider() {
-    _loadPreferences();
-  }
-
   Future<void> _loadPreferences() async {
-    if (_isInitialized) return;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+    try {
+      if (_auth.currentUser != null) {
+        final doc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
         if (doc.exists) {
-          _isDarkMode = doc.data()?['isDarkMode'] ?? false;
-          _language = doc.data()?['language'] ?? 'Русский';
-          _updateLocale(_language);
+          final data = doc.data();
+          if (data != null) {
+            _isDarkMode = data['isDarkMode'] ?? false;
+            _language = data['language'] ?? 'ru';
+            _locale = Locale(_language);
+          }
         }
-      } catch (e) {
-        print('Error loading preferences from Firestore: $e');
-        _isDarkMode = false;
-        _language = 'Русский';
-        _updateLocale(_language);
       }
-    } else {
+    } catch (e) {
       _isDarkMode = false;
-      _language = 'Русский';
-      _updateLocale(_language);
+      _language = 'ru';
+      _locale = const Locale('ru');
     }
     _isInitialized = true;
     notifyListeners();
@@ -48,56 +46,30 @@ class ThemeLanguageProvider extends ChangeNotifier {
 
   Future<void> toggleTheme(bool value) async {
     _isDarkMode = value;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'isDarkMode': value,
-          'language': _language,
-        }, SetOptions(merge: true));
-      } catch (e) {
-        print('Error saving theme to Firestore: $e');
-      }
-    }
     notifyListeners();
+    if (_auth.currentUser != null) {
+      await _firestore.collection('users').doc(_auth.currentUser!.uid).set({
+        'isDarkMode': _isDarkMode,
+        'language': _language,
+      }, SetOptions(merge: true));
+    }
   }
 
-  Future<void> setLanguage(String language) async {
-    _language = language;
-    _updateLocale(language);
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'isDarkMode': _isDarkMode,
-          'language': language,
-        }, SetOptions(merge: true));
-      } catch (e) {
-        print('Error saving language to Firestore: $e');
-      }
-    }
+  Future<void> setLanguage(String lang) async {
+    _language = lang;
+    _locale = Locale(lang);
     notifyListeners();
-  }
-
-  void _updateLocale(String language) {
-    switch (language) {
-      case 'Русский':
-        _locale = const Locale('ru');
-        break;
-      case 'Қазақша':
-        _locale = const Locale('kk');
-        break;
-      case 'English':
-        _locale = const Locale('en');
-        break;
-      default:
-        _locale = const Locale('ru');
+    if (_auth.currentUser != null) {
+      await _firestore.collection('users').doc(_auth.currentUser!.uid).set({
+        'isDarkMode': _isDarkMode,
+        'language': _language,
+      }, SetOptions(merge: true));
     }
   }
 
   void resetPreferences() {
     _isDarkMode = false;
-    _language = 'Русский';
+    _language = 'ru';
     _locale = const Locale('ru');
     _isInitialized = false;
     notifyListeners();

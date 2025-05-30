@@ -25,520 +25,415 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeLanguageProvider>(context);
     final localizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('settings'),
+            style: theme.appBarTheme.titleTextStyle,
+          ),
         ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF6B7280)),
+      ),
+      body: ListView(
+        children: [
+          FadeInLeft(
+            duration: const Duration(milliseconds: 800),
+            child: _buildCard(
+              child: SwitchListTile(
+                title: Text(
+                  localizations.translate('darkTheme'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                value: themeProvider.isDarkMode,
+                onChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                },
+                activeColor: theme.colorScheme.primary,
+                secondary: Icon(
+                  IconlyLight.star,
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+              theme: theme,
+            ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF6B7280)),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 900),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('userSettings'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const UserSettingsPage(),
+                      'UserSettingsPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF2A9D8F), width: 2),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1000),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('notificationSettings'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const NotificationSettingsPage(),
+                      'NotificationSettingsPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
           ),
-          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-          prefixIconColor: const Color(0xFF2A9D8F),
-          suffixIconColor: const Color(0xFF2A9D8F),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1100),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('language'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const LanguageSettingsPage(),
+                      'LanguageSettingsPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
+          ),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1200),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('favourites'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const FavouritesPage(),
+                      'FavouritesPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
+          ),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1300),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('aboutTheApp'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const AboutPage(),
+                      'AboutPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
+          ),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1400),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('help'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const HelpPage(),
+                      'HelpPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
+          ),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1500),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('pinSettings'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.arrow_right_2,
+                  color: theme.colorScheme.secondary,
+                ),
+                onTap:
+                    () => _navigateTo(
+                      context,
+                      const PinSettingsPage(),
+                      'PinSettingsPage',
+                      localizations,
+                      theme,
+                    ),
+              ),
+              theme: theme,
+            ),
+          ),
+          Divider(color: theme.dividerColor),
+          FadeInLeft(
+            duration: const Duration(milliseconds: 1600),
+            child: _buildCard(
+              child: ListTile(
+                title: Text(
+                  localizations.translate('logout'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+                trailing: Icon(
+                  IconlyLight.logout,
+                  color: theme.colorScheme.error,
+                ),
+                onTap: () => _showLogoutDialog(context, localizations, theme),
+              ),
+              theme: theme,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({required Widget child, required ThemeData theme}) {
+    return Card(
+      color: theme.cardColor,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors:
+                theme.brightness == Brightness.dark
+                    ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2A9D8F),
-            foregroundColor: Colors.white,
+        child: child,
+      ),
+    );
+  }
+
+  void _navigateTo(
+    BuildContext context,
+    Widget page,
+    String pageName,
+    AppLocalizations localizations,
+    ThemeData theme,
+  ) {
+    print('Navigating to $pageName');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    ).catchError((e) {
+      print('Error navigating to $pageName: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localizations.translate('failedToOpen$pageName') ??
+                'Failed to open $pageName',
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+          ),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    });
+  }
+
+  void _showLogoutDialog(
+    BuildContext context,
+    AppLocalizations localizations,
+    ThemeData theme,
+  ) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            minimumSize: const Size(double.infinity, 48),
-          ),
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: const Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('settings'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+            title: FadeInDown(
+              duration: const Duration(milliseconds: 600),
+              child: Text(
+                localizations.translate('confirmLogout'),
+                style: theme.textTheme.titleLarge,
               ),
             ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF2A9D8F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: ListView(
-          children: [
-            FadeInLeft(
-              duration: const Duration(milliseconds: 800),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+            content: FadeInLeft(
+              duration: const Duration(milliseconds: 700),
+              child: Text(
+                localizations.translate('confirmLogoutMessage'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            actions: [
+              ZoomIn(
+                duration: const Duration(milliseconds: 800),
+                child: TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.secondary,
                   ),
-                  child: SwitchListTile(
-                    title: Text(
-                      localizations.translate('darkTheme'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    value: themeProvider.isDarkMode,
-                    onChanged: (value) {
-                      themeProvider.toggleTheme(value);
-                    },
-                    activeColor: const Color(0xFF2A9D8F),
-                    secondary: const Icon(
-                      IconlyLight.star,
-                      color: Color(0xFFF4A261),
-                    ),
+                  child: Text(
+                    localizations.translate('cancel'),
+                    style: theme.textTheme.labelLarge,
                   ),
                 ),
               ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 900),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('userSettings'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to UserSettingsPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UserSettingsPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1000),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('notificationSettings'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to NotificationSettingsPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const NotificationSettingsPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1100),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('language'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to LanguageSettingsPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LanguageSettingsPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1200),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('favourites'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to FavouritesPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const FavouritesPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1300),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('aboutTheApp'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to AboutPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AboutPage()),
-                      ).catchError((e) {
-                        print('Error navigating to AboutPage: $e');
-                        ScaffoldMessenger.of(context).showSnackBar(
+              ZoomIn(
+                duration: const Duration(milliseconds: 900),
+                child: TextButton(
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    print('Logging out');
+                    try {
+                      await FirebaseAuth.instance.signOut();
+                      print('Firebase sign out successful');
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove('user');
+                      await prefs.remove('password');
+                      await prefs.remove('resumes');
+                      await prefs.remove('avatar');
+                      await prefs.remove('status');
+                      await prefs.remove('offline_pin');
+                      await prefs.remove('offline_user_id');
+                      print('SharedPreferences cleared');
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    } catch (e) {
+                      print('Error during logout: $e');
+                      if (context.mounted) {
+                        scaffoldMessenger.showSnackBar(
                           SnackBar(
                             content: Text(
-                              localizations.translate('failedToOpenAbout'),
-                              style: const TextStyle(color: Colors.white),
+                              localizations.translate('logoutFailed') ??
+                                  'Failed to log out',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white,
+                              ),
                             ),
-                            backgroundColor: Colors.redAccent,
+                            backgroundColor: theme.colorScheme.error,
                           ),
                         );
-                      });
-                    },
+                      }
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                  child: Text(
+                    localizations.translate('logout'),
+                    style: theme.textTheme.labelLarge,
                   ),
                 ),
               ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1400),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('help'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to HelpPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => HelpPage()),
-                      ).catchError((e) {
-                        print('Error navigating to HelpPage: $e');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              localizations.translate('failedToOpenHelp'),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1500),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('pinSettings'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.arrow_right_2,
-                      color: Color(0xFFF4A261),
-                    ),
-                    onTap: () {
-                      print('Navigating to PinSettingsPage');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PinSettingsPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const Divider(color: Color(0xFFE6ECEF)),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 1600),
-              child: Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      localizations.translate('logout'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.redAccent,
-                      ),
-                    ),
-                    trailing: const Icon(
-                      IconlyLight.logout,
-                      color: Colors.redAccent,
-                    ),
-                    onTap: () {
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          title: FadeInDown(
-                            duration: const Duration(milliseconds: 600),
-                            child: Text(
-                              localizations.translate('confirmLogout'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF264653),
-                              ),
-                            ),
-                          ),
-                          content: FadeInLeft(
-                            duration: const Duration(milliseconds: 700),
-                            child: Text(
-                              localizations.translate('confirmLogoutMessage'),
-                              style: const TextStyle(color: Color(0xFF6B7280)),
-                            ),
-                          ),
-                          actions: [
-                            ZoomIn(
-                              duration: const Duration(milliseconds: 800),
-                              child: TextButton(
-                                onPressed: () => Navigator.pop(dialogContext),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFF4A261),
-                                ),
-                                child: Text(
-                                  localizations.translate('cancel'),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ZoomIn(
-                              duration: const Duration(milliseconds: 900),
-                              child: TextButton(
-                                onPressed: () async {
-                                  Navigator.pop(dialogContext);
-                                  print('Logging out');
-                                  try {
-                                    await FirebaseAuth.instance.signOut();
-                                    print('Firebase sign out successful');
-                                    final prefs = await SharedPreferences.getInstance();
-                                    await prefs.remove('user');
-                                    await prefs.remove('password');
-                                    await prefs.remove('resumes');
-                                    await prefs.remove('avatar');
-                                    await prefs.remove('status');
-                                    await prefs.remove('offline_pin');
-                                    await prefs.remove('offline_user_id');
-                                    print('SharedPreferences cleared');
-                                    if (context.mounted) {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const LoginPage()),
-                                        (route) => false,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    print('Error during logout: $e');
-                                    if (context.mounted) {
-                                      scaffoldMessenger.showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            localizations.translate('logoutFailed') ??
-                                                'Failed to log out',
-                                            style: const TextStyle(color: Colors.white),
-                                          ),
-                                          backgroundColor: Colors.redAccent,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.redAccent,
-                                ),
-                                child: Text(
-                                  localizations.translate('logout'),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
     );
   }
 }
@@ -555,63 +450,127 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
-  void _updateName() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && mounted) {
+      setState(() {
+        _nameController.text = user.displayName ?? '';
+      });
+    }
+  }
+
+  Future<void> _updateName() async {
     final localizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             localizations.translate('enterName'),
-            style: const TextStyle(color: Colors.white),
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
           ),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: theme.colorScheme.error,
         ),
       );
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    String? userJson = prefs.getString('user');
-    if (userJson != null) {
-      Map<String, dynamic> userMap = jsonDecode(userJson);
-      userMap['name'] = _nameController.text;
-      await prefs.setString('user', jsonEncode(userMap));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            localizations.translate('nameUpdated'),
-            style: const TextStyle(color: Colors.white),
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updateDisplayName(_nameController.text);
+        final prefs = await SharedPreferences.getInstance();
+        String? userJson = prefs.getString('user');
+        Map<String, dynamic> userMap =
+            userJson != null ? jsonDecode(userJson) : {};
+        userMap['name'] = _nameController.text;
+        await prefs.setString('user', jsonEncode(userMap));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                localizations.translate('nameUpdated'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error updating name: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizations.translate('failedToUpdateName'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
+            backgroundColor: theme.colorScheme.error,
           ),
-          backgroundColor: const Color(0xFF2A9D8F),
-        ),
-      );
+        );
+      }
     }
   }
 
-  void _updatePassword() async {
+  Future<void> _updatePassword() async {
     final localizations = AppLocalizations.of(context);
-    if (_passwordController.text.isEmpty) {
+    final theme = Theme.of(context);
+    if (_passwordController.text.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            localizations.translate('enterPassword'),
-            style: const TextStyle(color: Colors.white),
+            localizations.translate('passwordTooShort'),
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
           ),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: theme.colorScheme.error,
         ),
       );
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('password', _passwordController.text);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          localizations.translate('passwordUpdated'),
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color(0xFF2A9D8F),
-      ),
-    );
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updatePassword(_passwordController.text);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('password', _passwordController.text);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                localizations.translate('passwordUpdated'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error updating password: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizations.translate('failedToUpdatePassword'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -624,121 +583,97 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('userSettings'),
+            style: theme.appBarTheme.titleTextStyle,
+          ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF6B7280)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF6B7280)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF2A9D8F), width: 2),
-          ),
-          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-          prefixIconColor: const Color(0xFF2A9D8F),
-          suffixIconColor: const Color(0xFF2A9D8F),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2A9D8F),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            minimumSize: const Size(double.infinity, 48),
-          ),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: const Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('userSettings'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FadeInLeft(
+              duration: const Duration(milliseconds: 800),
+              child: TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: localizations.translate('newName'),
+                  prefixIcon: Icon(
+                    IconlyLight.profile,
+                    color: theme.colorScheme.primary,
+                  ),
+                  hintText: 'John Doe',
+                  hintStyle: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  border: theme.inputDecorationTheme.border,
+                  enabledBorder: theme.inputDecorationTheme.enabledBorder,
+                  focusedBorder: theme.inputDecorationTheme.focusedBorder,
+                ),
               ),
             ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF2A9D8F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FadeInLeft(
-                duration: const Duration(milliseconds: 800),
-                child: TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('newName'),
-                    prefixIcon: const Icon(IconlyLight.profile),
-                    hintText: 'John Doe',
-                    hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+            const SizedBox(height: 10),
+            ZoomIn(
+              duration: const Duration(milliseconds: 900),
+              child: ElevatedButton(
+                onPressed: _updateName,
+                child: Text(localizations.translate('updateName')),
+              ),
+            ),
+            const SizedBox(height: 20),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1000),
+              child: TextField(
+                controller: _passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: localizations.translate('newPassword'),
+                  prefixIcon: Icon(
+                    IconlyLight.lock,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              ZoomIn(
-                duration: const Duration(milliseconds: 900),
-                child: ElevatedButton(
-                  onPressed: _updateName,
-                  child: Text(localizations.translate('updateName')),
-                ),
-              ),
-              const SizedBox(height: 20),
-              FadeInLeft(
-                duration: const Duration(milliseconds: 1000),
-                child: TextField(
-                  controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: localizations.translate('newPassword'),
-                    prefixIcon: const Icon(IconlyLight.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible ? IconlyLight.show : IconlyLight.hide,
-                        color: const Color(0xFF2A9D8F),
-                      ),
-                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? IconlyLight.show : IconlyLight.hide,
+                      color: theme.colorScheme.primary,
                     ),
-                    hintText: '••••••••',
-                    hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+                    onPressed:
+                        () => setState(
+                          () => _isPasswordVisible = !_isPasswordVisible,
+                        ),
                   ),
+                  hintText: '••••••••',
+                  hintStyle: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  border: theme.inputDecorationTheme.border,
+                  enabledBorder: theme.inputDecorationTheme.enabledBorder,
+                  focusedBorder: theme.inputDecorationTheme.focusedBorder,
                 ),
               ),
-              const SizedBox(height: 10),
-              ZoomIn(
-                duration: const Duration(milliseconds: 1100),
-                child: ElevatedButton(
-                  onPressed: _updatePassword,
-                  child: Text(localizations.translate('updatePassword')),
-                ),
+            ),
+            const SizedBox(height: 10),
+            ZoomIn(
+              duration: const Duration(milliseconds: 1100),
+              child: ElevatedButton(
+                onPressed: _updatePassword,
+                child: Text(localizations.translate('updatePassword')),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -749,7 +684,8 @@ class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
   @override
-  _NotificationSettingsPageState createState() => _NotificationSettingsPageState();
+  _NotificationSettingsPageState createState() =>
+      _NotificationSettingsPageState();
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
@@ -758,78 +694,59 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
-        ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('notificationSettings'),
+            style: theme.appBarTheme.titleTextStyle,
           ),
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        ),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: const Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('notificationSettings'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF2A9D8F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FadeInLeft(
-            duration: const Duration(milliseconds: 800),
-            child: Card(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: FadeInLeft(
+          duration: const Duration(milliseconds: 800),
+          child: Card(
+            color: theme.cardColor,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors:
+                      theme.brightness == Brightness.dark
+                          ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                          : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: SwitchListTile(
-                  title: Text(
-                    localizations.translate('enableSound'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF264653),
-                    ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SwitchListTile(
+                title: Text(
+                  localizations.translate('enableSound'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
-                  value: _soundEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _soundEnabled = value;
-                    });
-                  },
-                  activeColor: const Color(0xFF2A9D8F),
-                  secondary: const Icon(
-                    IconlyLight.notification,
-                    color: Color(0xFFF4A261),
-                  ),
+                ),
+                value: _soundEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _soundEnabled = value;
+                  });
+                },
+                activeColor: theme.colorScheme.primary,
+                secondary: Icon(
+                  IconlyLight.notification,
+                  color: theme.colorScheme.secondary,
                 ),
               ),
             ),
@@ -852,137 +769,115 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeLanguageProvider>(context);
     final localizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
-        ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('language'),
+            style: theme.appBarTheme.titleTextStyle,
           ),
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        ),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: const Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('language'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          color: theme.cardColor,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors:
+                    theme.brightness == Brightness.dark
+                        ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                        : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF2A9D8F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Card(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FadeInLeft(
+                  duration: const Duration(milliseconds: 800),
+                  child: RadioListTile<String>(
+                    title: Text(
+                      localizations.translate('languageKazakh'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    value: 'kk',
+                    groupValue: themeProvider.language,
+                    onChanged: (value) {
+                      if (value != null) {
+                        themeProvider.setLanguage(value);
+                      }
+                    },
+                    activeColor: theme.colorScheme.primary,
+                    secondary: Icon(
+                      IconlyLight.bookmark,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FadeInLeft(
-                    duration: const Duration(milliseconds: 800),
-                    child: RadioListTile<String>(
-                      title: Text(
-                        localizations.translate('languageKazakh'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF264653),
-                        ),
-                      ),
-                      value: 'Қазақша',
-                      groupValue: themeProvider.language,
-                      onChanged: (value) {
-                        if (value != null) {
-                          themeProvider.setLanguage(value);
-                        }
-                      },
-                      activeColor: const Color(0xFF2A9D8F),
-                      secondary: const Icon(
-                        IconlyLight.bookmark,
-                        color: Color(0xFFF4A261),
+                FadeInLeft(
+                  duration: const Duration(milliseconds: 900),
+                  child: RadioListTile<String>(
+                    title: Text(
+                      localizations.translate('languageRussian'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  FadeInLeft(
-                    duration: const Duration(milliseconds: 900),
-                    child: RadioListTile<String>(
-                      title: Text(
-                        localizations.translate('languageRussian'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF264653),
-                        ),
-                      ),
-                      value: 'Русский',
-                      groupValue: themeProvider.language,
-                      onChanged: (value) {
-                        if (value != null) {
-                          themeProvider.setLanguage(value);
-                        }
-                      },
-                      activeColor: const Color(0xFF2A9D8F),
-                      secondary: const Icon(
-                        IconlyLight.bookmark,
-                        color: Color(0xFFF4A261),
-                      ),
+                    value: 'ru',
+                    groupValue: themeProvider.language,
+                    onChanged: (value) {
+                      if (value != null) {
+                        themeProvider.setLanguage(value);
+                      }
+                    },
+                    activeColor: theme.colorScheme.primary,
+                    secondary: Icon(
+                      IconlyLight.bookmark,
+                      color: theme.colorScheme.secondary,
                     ),
                   ),
-                  FadeInLeft(
-                    duration: const Duration(milliseconds: 1000),
-                    child: RadioListTile<String>(
-                      title: Text(
-                        localizations.translate('languageEnglish'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF264653),
-                        ),
-                      ),
-                      value: 'English',
-                      groupValue: themeProvider.language,
-                      onChanged: (value) {
-                        if (value != null) {
-                          themeProvider.setLanguage(value);
-                        }
-                      },
-                      activeColor: const Color(0xFF2A9D8F),
-                      secondary: const Icon(
-                        IconlyLight.bookmark,
-                        color: Color(0xFFF4A261),
+                ),
+                FadeInLeft(
+                  duration: const Duration(milliseconds: 1000),
+                  child: RadioListTile<String>(
+                    title: Text(
+                      localizations.translate('languageEnglish'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    value: 'en',
+                    groupValue: themeProvider.language,
+                    onChanged: (value) {
+                      if (value != null) {
+                        themeProvider.setLanguage(value);
+                      }
+                    },
+                    activeColor: theme.colorScheme.primary,
+                    secondary: Icon(
+                      IconlyLight.bookmark,
+                      color: theme.colorScheme.secondary,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -997,65 +892,46 @@ class FavouritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
-        ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('favourites'),
+            style: theme.appBarTheme.titleTextStyle,
           ),
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        ),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: const Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('favourites'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF2A9D8F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FadeInLeft(
-            duration: const Duration(milliseconds: 800),
-            child: Card(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: FadeInLeft(
+          duration: const Duration(milliseconds: 800),
+          child: Card(
+            color: theme.cardColor,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors:
+                      theme.brightness == Brightness.dark
+                          ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                          : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  localizations.translate('favouritesPlaceholder'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF6B7280),
-                  ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                localizations.translate('favouritesPlaceholder'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
             ),

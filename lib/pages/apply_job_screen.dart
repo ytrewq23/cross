@@ -46,8 +46,9 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
           SnackBar(
             content: Text(
               AppLocalizations.of(context).translate('applicationSubmitted'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
             ),
-            backgroundColor: Color(0xFF2A9D8F),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
         Navigator.pop(context);
@@ -57,8 +58,11 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error submitting application: $e'),
-            backgroundColor: Colors.redAccent,
+            content: Text(
+              'Error submitting application: $e',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -77,76 +81,31 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        colorScheme: ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF2A9D8F),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF6B7280)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFFF4A261), width: 2),
-          ),
-          labelStyle: TextStyle(color: Color(0xFF6B7280)),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.redAccent),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.redAccent, width: 2),
-          ),
-        ),
-      ),
-      child: withOrientationSupport(
-        context: context,
-        portrait: _buildPortraitLayout(context, localizations),
-        landscape: _buildLandscapeLayout(context, localizations),
-      ),
+    final theme = Theme.of(context);
+
+    return withOrientationSupport(
+      context: context,
+      portrait: _buildPortraitLayout(context, localizations),
+      landscape: _buildLandscapeLayout(context, localizations),
     );
   }
 
-  Widget _buildPortraitLayout(
-      BuildContext context,
-      AppLocalizations localizations,
-      ) {
+  Widget _buildPortraitLayout(BuildContext context, AppLocalizations localizations) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: FadeInDown(
-          duration: Duration(milliseconds: 600),
+          duration: const Duration(milliseconds: 600),
           child: Text(
             localizations.translate('applyForJob'),
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
+            style: theme.appBarTheme.titleTextStyle,
           ),
         ),
-        backgroundColor: Color(0xFF2A9D8F),
+        backgroundColor: theme.colorScheme.primary,
         centerTitle: true,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
         elevation: 4,
@@ -156,10 +115,13 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
         child: Card(
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: theme.cardColor,
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+                colors: theme.brightness == Brightness.dark
+                    ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -172,45 +134,48 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   FadeInDown(
-                    duration: Duration(milliseconds: 800),
+                    duration: const Duration(milliseconds: 800),
                     child: Text(
                       '${localizations.translate('jobTitle')}: ${widget.jobTitle}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF264653),
-                      ),
+                      style: theme.textTheme.titleLarge,
                     ),
                   ),
                   const SizedBox(height: 16),
                   FadeInLeft(
-                    duration: Duration(milliseconds: 900),
+                    duration: const Duration(milliseconds: 900),
                     child: TextFormField(
                       controller: _coverLetterController,
                       decoration: InputDecoration(
                         labelText: localizations.translate('coverLetter'),
-                        prefixIcon: Icon(IconlyLight.document, color: Color(0xFFF4A261)),
+                        prefixIcon: Icon(IconlyLight.document, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                        ),
                       ),
                       maxLines: 5,
                       validator: (value) =>
-                      value!.isEmpty
-                          ? localizations.translate('enterCoverLetter')
-                          : null,
+                          value!.isEmpty ? localizations.translate('enterCoverLetter') : null,
                     ),
                   ),
                   const SizedBox(height: 16),
                   FadeInLeft(
-                    duration: Duration(milliseconds: 1000),
+                    duration: const Duration(milliseconds: 1000),
                     child: TextFormField(
                       controller: _resumeLinkController,
                       decoration: InputDecoration(
                         labelText: localizations.translate('resumeLink'),
-                        prefixIcon: Icon(IconlyLight.upload, color: Color(0xFFF4A261)),
+                        prefixIcon: Icon(IconlyLight.upload, color: theme.colorScheme.secondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                        ),
                       ),
                       keyboardType: TextInputType.url,
                       validator: (value) {
-                        if (value!.isNotEmpty &&
-                            !Uri.tryParse(value)!.hasAbsolutePath) {
+                        if (value!.isNotEmpty && !Uri.tryParse(value)!.hasAbsolutePath) {
                           return localizations.translate('invalidUrl');
                         }
                         return null;
@@ -220,20 +185,25 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
                   const SizedBox(height: 24),
                   _isLoading
                       ? Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2A9D8F),
-                    ),
-                  )
+                          child: CircularProgressIndicator(
+                            color: theme.colorScheme.primary,
+                          ),
+                        )
                       : ZoomIn(
-                    duration: Duration(milliseconds: 1100),
-                    child: ElevatedButton(
-                      onPressed: _submitApplication,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                      child: Text(localizations.translate('submitApplication')),
-                    ),
-                  ),
+                          duration: const Duration(milliseconds: 1100),
+                          child: ElevatedButton(
+                            onPressed: _submitApplication,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 48),
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(localizations.translate('submitApplication')),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -243,27 +213,22 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
     );
   }
 
-  Widget _buildLandscapeLayout(
-      BuildContext context,
-      AppLocalizations localizations,
-      ) {
+  Widget _buildLandscapeLayout(BuildContext context, AppLocalizations localizations) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: FadeInDown(
-          duration: Duration(milliseconds: 600),
+          duration: const Duration(milliseconds: 600),
           child: Text(
             localizations.translate('applyForJob'),
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
+            style: theme.appBarTheme.titleTextStyle,
           ),
         ),
-        backgroundColor: Color(0xFF2A9D8F),
+        backgroundColor: theme.colorScheme.primary,
         centerTitle: true,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
         ),
         elevation: 4,
@@ -273,10 +238,13 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
         child: Card(
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: theme.cardColor,
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+                colors: theme.brightness == Brightness.dark
+                    ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -293,30 +261,29 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         FadeInDown(
-                          duration: Duration(milliseconds: 800),
+                          duration: const Duration(milliseconds: 800),
                           child: Text(
                             '${localizations.translate('jobTitle')}: ${widget.jobTitle}',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF264653),
-                            ),
+                            style: theme.textTheme.titleLarge,
                           ),
                         ),
                         const SizedBox(height: 16),
                         FadeInLeft(
-                          duration: Duration(milliseconds: 900),
+                          duration: const Duration(milliseconds: 900),
                           child: TextFormField(
                             controller: _coverLetterController,
                             decoration: InputDecoration(
                               labelText: localizations.translate('coverLetter'),
-                              prefixIcon: Icon(IconlyLight.document, color: Color(0xFFF4A261)),
+                              prefixIcon: Icon(IconlyLight.document, color: theme.colorScheme.secondary),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                              ),
                             ),
                             maxLines: 5,
                             validator: (value) =>
-                            value!.isEmpty
-                                ? localizations.translate('enterCoverLetter')
-                                : null,
+                                value!.isEmpty ? localizations.translate('enterCoverLetter') : null,
                           ),
                         ),
                       ],
@@ -328,17 +295,21 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         FadeInLeft(
-                          duration: Duration(milliseconds: 1000),
+                          duration: const Duration(milliseconds: 1000),
                           child: TextFormField(
                             controller: _resumeLinkController,
                             decoration: InputDecoration(
                               labelText: localizations.translate('resumeLink'),
-                              prefixIcon: Icon(IconlyLight.upload, color: Color(0xFFF4A261)),
+                              prefixIcon: Icon(IconlyLight.upload, color: theme.colorScheme.secondary),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                              ),
                             ),
                             keyboardType: TextInputType.url,
                             validator: (value) {
-                              if (value!.isNotEmpty &&
-                                  !Uri.tryParse(value)!.hasAbsolutePath) {
+                              if (value!.isNotEmpty && !Uri.tryParse(value)!.hasAbsolutePath) {
                                 return localizations.translate('invalidUrl');
                               }
                               return null;
@@ -348,20 +319,25 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
                         const SizedBox(height: 24),
                         _isLoading
                             ? Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF2A9D8F),
-                          ),
-                        )
+                                child: CircularProgressIndicator(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
                             : ZoomIn(
-                          duration: Duration(milliseconds: 1100),
-                          child: ElevatedButton(
-                            onPressed: _submitApplication,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 48),
-                            ),
-                            child: Text(localizations.translate('submitApplication')),
-                          ),
-                        ),
+                                duration: const Duration(milliseconds: 1100),
+                                child: ElevatedButton(
+                                  onPressed: _submitApplication,
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(double.infinity, 48),
+                                    backgroundColor: theme.colorScheme.primary,
+                                    foregroundColor: theme.colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(localizations.translate('submitApplication')),
+                                ),
+                              ),
                       ],
                     ),
                   ),

@@ -1,136 +1,148 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../localizations.dart';
-import 'offline_service.dart';
-import 'edit_job_screen.dart';
-import 'create_job_screen.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class JobListScreen extends StatefulWidget {
-  const JobListScreen({super.key});
+class OfflineService {
+  static const String _pendingActionsKey = 'pending_actions';
+  static const String _cachedJobsKey = 'cached_jobs';
+  static const String _cachedResumeKey = 'cached_resume';
+  bool isOnline = true;
 
-  @override
-  _JobListScreenState createState() => _JobListScreenState();
-}
+  OfflineService._privateConstructor();
+  static final OfflineService _instance = OfflineService._privateConstructor();
+  factory OfflineService() => _instance;
 
-class _JobListScreenState extends State<JobListScreen> {
-  final OfflineService _offlineService = OfflineService();
-  List<Map<String, dynamic>> _jobs = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadJobs();
-  }
-
-  Future<void> _loadJobs() async {
-    setState(() => _isLoading = true);
-    try {
-      if (await _offlineService.checkConnection()) {
-        await _offlineService.syncAndNotify(context, () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).translate('jobsSynced'),
-              ),
-            ),
-          );
-        });
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          final jobs = await FirebaseFirestore.instance
-              .collection('jobs')
-              .where('employerId', isEqualTo: user.uid)
-              .get();
-          _jobs = jobs.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
-          await _offlineService.saveJobsListOffline(_jobs);
-          print('Loaded ${_jobs.length} jobs from Firestore');
+  Future<void> init() async {
+    await _checkConnectivity();
+    Connectivity().onConnectivityChanged.listen((results) {
+      final newOnline = results.any((result) => result != ConnectivityResult.none);
+      if (newOnline != isOnline) {
+        isOnline = newOnline;
+        if (isOnline) {
+          syncPendingActions(null);
         }
-      } else {
-        _jobs = await _offlineService.getJobsListOffline();
-        _offlineService.showOfflineSnackBar(context);
-        print('Loaded ${_jobs.length} jobs from offline storage');
       }
-    } catch (e) {
-      print('Error loading jobs: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading jobs: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.translate('jobList')),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadJobs,
+  Future<void> _checkConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    isOnline = result.any((r) => r != ConnectivityResult.none);
+  }
+
+  Future<void> saveJobOffline(Map<String, dynamic> jobData, String actionType) async {
+    final prefs = await SharedPreferences.getInstance();
+    final action = {
+      'type': 'job',
+      'action': actionType, // 'create' or 'delete'
+      'data': jobData,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    List<String> pendingActions = prefs.getStringList(_pendingActionsKey) ?? [];
+    pendingActions.add(jsonEncode(action));
+    await prefs.setStringList(_pendingActionsKey, pendingActions);
+
+    List<Map<String, dynamic>> cachedJobs = await getJobsListOffline();
+    if (actionType == 'create') {
+      cachedJobs.add(jobData);
+    } else if (actionType == 'delete') {
+      cachedJobs.removeWhere((j) => j['id'] == jobData['id']);
+    }
+    await prefs.setString(_cachedJobsKey, jsonEncode(cachedJobs));
+  }
+
+  Future<void> saveResumeOffline(Map<String, dynamic> resumeData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final action = {
+      'type': 'resume',
+      'action': 'set',
+      'data': resumeData,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    List<String> pendingActions = prefs.getStringList(_pendingActionsKey) ?? [];
+    pendingActions.add(jsonEncode(action));
+    await prefs.setStringList(_pendingActionsKey, pendingActions);
+    await prefs.setString(_cachedResumeKey, jsonEncode(resumeData));
+  }
+
+  Future<List<Map<String, dynamic>>> getJobsListOffline() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jobsJson = prefs.getString(_cachedJobsKey);
+    if (jobsJson != null) {
+      final List<dynamic> decoded = jsonDecode(jobsJson);
+      return decoded.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> getResumeOffline() async {
+    final prefs = await SharedPreferences.getInstance();
+    final resumeJson = prefs.getString(_cachedResumeKey);
+    if (resumeJson != null) {
+      return jsonDecode(resumeJson) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  Future<void> syncPendingActions(BuildContext? context) async {
+    if (!isOnline) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final pendingActions = prefs.getStringList(_pendingActionsKey) ?? [];
+    if (pendingActions.isEmpty) return;
+
+    bool success = true;
+    List<String> remainingActions = [];
+
+    for (var actionJson in pendingActions) {
+      try {
+        final action = jsonDecode(actionJson);
+        final type = action['type'];
+        final actionType = action['action'];
+        final data = action['data'];
+
+        if (type == 'job') {
+          if (actionType == 'create') {
+            final docRef = await FirebaseFirestore.instance.collection('jobs').add(data);
+            data['id'] = docRef.id;
+          } else if (actionType == 'delete') {
+            await FirebaseFirestore.instance.collection('jobs').doc(data['id']).delete();
+          }
+        } else if (type == 'resume') {
+          final userId = data['userId'];
+          await FirebaseFirestore.instance.collection('resumes').doc(userId).set(data);
+        }
+      } catch (e) {
+        print('Sync error: $e');
+        success = false;
+        remainingActions.add(actionJson);
+      }
+    }
+
+    if (success) {
+      await prefs.remove(_pendingActionsKey);
+      await prefs.remove(_cachedJobsKey);
+      await prefs.remove(_cachedResumeKey);
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Data synced successfully', style: TextStyle(color: Colors.white)),
+            backgroundColor: Color(0xFF2A9D8F),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_forever),
-            onPressed: () async {
-              await _offlineService.clearOfflineStorage();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Offline storage cleared'),
-                ),
-              );
-              _loadJobs();
-            },
+        );
+      }
+    } else {
+      await prefs.setStringList(_pendingActionsKey, remainingActions);
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sync failed, will retry later', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
           ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _jobs.isEmpty
-              ? Center(child: Text(localizations.translate('noJobs')))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: _jobs.length,
-                  itemBuilder: (context, index) {
-                    final job = _jobs[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        title: Text(job['title'] ?? 'No Title'),
-                        subtitle: Text(
-                          '${job['city'] ?? 'No City'} • ${job['salary'] ?? 'No Salary'} • isOnline: ${job['isOnline'] ?? 'Unknown'}',
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditJobScreen(
-                                  jobId: job['id'],
-                                  jobData: job,
-                                ),
-                              ),
-                            ).then((_) => _loadJobs());
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateJobScreen()),
-          ).then((_) => _loadJobs());
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
+        );
+      }
+    }
   }
 }

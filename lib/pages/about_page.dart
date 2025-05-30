@@ -1,221 +1,174 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconly/iconly.dart';
 import '../localizations.dart';
 
 class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    return Theme(
-      data: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        colorScheme: ColorScheme.light(
-          primary: Color(0xFF2A9D8F),
-          secondary: Color(0xFFF4A261),
-          surface: Color(0xFFF8FAFC),
-          onSurface: Color(0xFF264653),
-        ),
-        cardTheme: CardTheme(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 600),
+          child: Text(
+            localizations.translate('aboutTheApp'),
+            style: theme.appBarTheme.titleTextStyle,
           ),
-          margin: EdgeInsets.symmetric(vertical: 8),
         ),
+        backgroundColor: theme.colorScheme.primary,
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+        elevation: 4,
       ),
-      child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: FadeInDown(
-            duration: Duration(milliseconds: 600),
-            child: Text(
-              localizations.translate('aboutTheApp'),
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FadeInDown(
+              duration: const Duration(milliseconds: 800),
+              child: Text(
+                localizations.translate('appTitle'),
+                style: theme.textTheme.titleLarge,
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-          backgroundColor: Color(0xFF2A9D8F),
-          centerTitle: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-          ),
-          elevation: 4,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FadeInDown(
-                duration: Duration(milliseconds: 800),
+            const SizedBox(height: 16),
+            FadeInDown(
+              duration: const Duration(milliseconds: 900),
+              child: Text(
+                localizations.translate('version'),
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1000),
+              child: Text(
+                localizations.translate('aboutUs'),
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+            const SizedBox(height: 8),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1100),
+              child: Text(
+                localizations.translate('aboutDescription'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1200),
+              child: Text(
+                localizations.translate('features'),
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ZoomIn(
+              duration: const Duration(milliseconds: 1300),
+              child: _buildFeatureItem(
+                context,
+                icon: IconlyLight.search,
+                title: localizations.translate('jobSearch'),
+                description: localizations.translate('jobSearchDescription'),
+              ),
+            ),
+            ZoomIn(
+              duration: const Duration(milliseconds: 1400),
+              child: _buildFeatureItem(
+                context,
+                icon: IconlyLight.profile,
+                title: localizations.translate('profileManagement'),
+                description: localizations.translate('profileManagementDescription'),
+              ),
+            ),
+            ZoomIn(
+              duration: const Duration(milliseconds: 1500),
+              child: _buildFeatureItem(
+                context,
+                icon: IconlyLight.notification,
+                title: localizations.translate('notificationsFeature'),
+                description: localizations.translate('notificationsDescription'),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FadeInUp(
+              duration: const Duration(milliseconds: 1600),
+              child: Center(
                 child: Text(
-                  localizations.translate('appTitle'),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF264653),
-                  ),
-                  textAlign: TextAlign.center,
+                  localizations.translate('copyright'),
+                  style: theme.textTheme.bodySmall,
                 ),
               ),
-              SizedBox(height: 16),
-              FadeInDown(
-                duration: Duration(milliseconds: 900),
-                child: Text(
-                  localizations.translate('version'),
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF6B7280),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              SizedBox(height: 24),
-              FadeInLeft(
-                duration: Duration(milliseconds: 1000),
-                child: Text(
-                  localizations.translate('aboutUs'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF264653),
-                  ),
-                ),
-              ),
-              SizedBox(height: 8),
-              FadeInLeft(
-                duration: Duration(milliseconds: 1100),
-                child: Text(
-                  localizations.translate('aboutDescription'),
-                  style: TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-              FadeInLeft(
-                duration: Duration(milliseconds: 1200),
-                child: Text(
-                  localizations.translate('features'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF264653),
-                  ),
-                ),
-              ),
-              SizedBox(height: 8),
-              ZoomIn(
-                duration: Duration(milliseconds: 1300),
-                child: _buildFeatureItem(
-                  context,
-                  icon: IconlyLight.search,
-                  title: localizations.translate('jobSearch'),
-                  description: localizations.translate('jobSearchDescription'),
-                ),
-              ),
-              ZoomIn(
-                duration: Duration(milliseconds: 1400),
-                child: _buildFeatureItem(
-                  context,
-                  icon: IconlyLight.profile,
-                  title: localizations.translate('profileManagement'),
-                  description: localizations.translate('profileManagementDescription'),
-                ),
-              ),
-              ZoomIn(
-                duration: Duration(milliseconds: 1500),
-                child: _buildFeatureItem(
-                  context,
-                  icon: IconlyLight.notification,
-                  title: localizations.translate('notificationsFeature'),
-                  description: localizations.translate('notificationsDescription'),
-                ),
-              ),
-              SizedBox(height: 24),
-              FadeInUp(
-                duration: Duration(milliseconds: 1600),
-                child: Center(
-                  child: Text(
-                    localizations.translate('copyright'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildFeatureItem(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String description,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    final theme = Theme.of(context);
+
     return Card(
+      color: theme.cardColor,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF8FAFC), Color(0xFFE6ECEF)],
+            colors: theme.brightness == Brightness.dark
+                ? [const Color(0xFF2A2F33), const Color(0xFF1C2526)]
+                : [const Color(0xFFF8FAFC), const Color(0xFFE6ECEF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ZoomIn(
-                duration: Duration(milliseconds: 200),
-                child: Icon(
-                  icon,
-                  size: 30,
-                  color: Color(0xFFF4A261),
-                ),
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ZoomIn(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                icon,
+                size: 30,
+                color: theme.colorScheme.secondary,
               ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF264653),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
